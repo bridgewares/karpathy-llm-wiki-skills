@@ -1,0 +1,1 @@
+PDF transcript excerpt: prompt caching helps repeated agent workflows, but only when the structured knowledge layer stays current.

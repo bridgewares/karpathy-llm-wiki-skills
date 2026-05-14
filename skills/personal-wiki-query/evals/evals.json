@@ -1,0 +1,87 @@
+{
+  "skill_name": "personal-wiki-query",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "把 `evals/files/direct-wiki-answer/` 当成目标 vault 根目录。请基于这个个人 wiki 现有内容回答：`如何减少知识漂移？` 先优先使用 `index.md` 和相关 `wiki/` 页面，不要把这次任务做成 ingest 或初始化。",
+      "expected_output": "基于现有 wiki 页面给出结构化回答，优先复用知识层，而不是直接转成 raw 处理或来源入库任务。",
+      "files": [
+        "evals/files/direct-wiki-answer"
+      ],
+      "expectations": [
+        "Answers the question using existing wiki content rather than treating the task as init or ingest",
+        "Uses or cites relevant wiki pages such as question, topic, synthesis, source, concept, or person pages",
+        "Provides a structured answer with a current conclusion and supporting evidence or page references",
+        "Does not move raw files, create source intake records, or otherwise perform ingest-specific actions"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "把 `evals/files/cross-page-comparison/` 当成目标 vault 根目录。请比较这个 wiki 里几份关于 agent memory 的来源或页面，看它们的共识、分歧和还没解决的问题分别是什么。",
+      "expected_output": "基于多个现有页面或来源做跨页比较与综合，而不是简单摘抄单页内容。",
+      "files": [
+        "evals/files/cross-page-comparison"
+      ],
+      "expectations": [
+        "Compares more than one relevant page or source-derived page from the target vault",
+        "Surfaces both shared conclusions and disagreements or unresolved gaps",
+        "Produces a synthesized answer instead of a single-page summary",
+        "Keeps the work scoped to query/synthesis rather than source ingest"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "把 `evals/files/wiki-first-raw-fallback/` 当成目标 vault 根目录。请回答：`这个主题目前有哪些证据支持？` 先看 wiki；如果 wiki 证据不够，再回到 `raw/library/` 里的相关原始资料补证据。",
+      "expected_output": "先基于 wiki 回答，并只在必要时使用 raw 作为补证据层，而不是反过来从 raw 起步。",
+      "files": [
+        "evals/files/wiki-first-raw-fallback"
+      ],
+      "expectations": [
+        "Starts from index.md and relevant wiki pages before consulting raw materials",
+        "Uses raw/library content only when wiki information is insufficient or needs verification",
+        "Incorporates any raw-derived support back into a structured answer about the current question",
+        "Does not turn the task into a re-ingest or source-page creation workflow"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "把 `evals/files/high-value-suggest-writeback/` 当成目标 vault 根目录。请整理这个 wiki 里关于 `如何减少知识漂移？` 的当前答案、主要依据和仍缺少的部分；如果你觉得这次结果值得长期保留，可以提出沉淀建议，但我这次没有明确要求你写回。",
+      "expected_output": "先完成结构化回答，并对明显高价值结果主动建议写回 questions 或 syntheses，而不是默认静默落盘。",
+      "files": [
+        "evals/files/high-value-suggest-writeback"
+      ],
+      "expectations": [
+        "Answers the question before discussing persistence",
+        "Proactively suggests writing back to wiki/questions or wiki/syntheses when the result appears durable or reusable",
+        "Does not silently persist the answer when the user did not explicitly request write-back",
+        "Chooses a plausible suggested write-back target based on whether the result is a stable question or a broader synthesis"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "把 `evals/files/explicit-writeback/` 当成目标 vault 根目录。请先回答这个专题当前的主要结论，再把结果写回 wiki；如果更像问题页就写到 `wiki/questions/`，如果更像跨来源综合就写到 `wiki/syntheses/`，同时更新 `log.md`。",
+      "expected_output": "在用户已明确要求落盘时，直接完成回答和写回，不再额外确认，并选择合适的落点页面。",
+      "files": [
+        "evals/files/explicit-writeback"
+      ],
+      "expectations": [
+        "Does not ask for extra confirmation when the prompt already requests write-back",
+        "Writes the result to a plausible target under wiki/questions or wiki/syntheses",
+        "Keeps the written page structured rather than dumping a chat transcript",
+        "Appends a query or synthesis style entry to log.md"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "下面这些请求不应该被当成 query 处理：1) `把 raw/inbox/articles/ 里的这篇文章 ingest 到 wiki`；2) `检查一下哪些页面是孤儿页，哪些来源需要 needs-update`；3) `直接帮我改写 wiki/topics/Agent Memory.md 这一页的表达`。请保持 query 的边界，不要把这些任务吞进去。",
+      "expected_output": "识别并保持 query 的边界，不把 ingest、lint 或单页编辑任务误吸收为 query。",
+      "files": [],
+      "expectations": [
+        "Recognizes that source ingest requests belong to a different workflow than query",
+        "Recognizes that orphan-page or needs-update audits belong to lint or consistency checking rather than query",
+        "Recognizes that standalone single-page editing without a query intent is not the query skill's responsibility",
+        "Keeps the explanation scoped to boundaries rather than pretending to execute all three tasks as query"
+      ]
+    }
+  ]
+}

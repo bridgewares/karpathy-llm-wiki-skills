@@ -1,0 +1,89 @@
+{
+  "skill_name": "personal-wiki-lint",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "把 `evals/files/consistency-audit/` 当成目标 vault 根目录。请对这个个人 wiki 做一次 lint，重点检查 `raw/library/`、`raw-index.md` 和 `wiki/sources/` 是否一致，并给我一个结构化巡检结果。",
+      "expected_output": "识别来源登记、状态或来源页映射的不一致，并输出清晰的审计结果，而不是把任务做成 ingest。",
+      "files": [
+        "evals/files/consistency-audit"
+      ],
+      "expectations": [
+        "Checks consistency across raw/library, raw-index.md, and wiki/sources rather than treating the task as source ingest",
+        "Identifies a concrete mapping mismatch by naming raw-index.md together with a missing or broken source_page / 来源页 reference",
+        "Produces a structured audit with consistency findings and suggested actions",
+        "Explicitly keeps the response in audit mode by saying it will not ingest, move raw files, or create missing source pages inline"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "把 `evals/files/orphan-crosslink-audit/` 当成目标 vault 根目录。请检查这个 wiki 里哪些页面像孤儿页，哪些地方明显缺交叉引用，并给出维护建议。",
+      "expected_output": "识别孤儿页和缺失交叉引用，输出结构化维护建议，而不是转成问答或大规模页面改写。",
+      "files": [
+        "evals/files/orphan-crosslink-audit"
+      ],
+      "expectations": [
+        "Distinguishes strict orphan pages from merely weakly connected pages using both labels and applying them to different files",
+        "Explicitly says wiki/sources/articles/orphan-source.md is not a strict orphan because index.md already links to it",
+        "Calls out the missing crosslinks from wiki/topics/Agent Memory.md to both wiki/questions/如何减少知识漂移？.md and wiki/concepts/Prompt Caching.md",
+        "Provides concrete maintenance suggestions while staying in audit mode rather than query, ingest, or full-page rewriting"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "把 `evals/files/stale-needs-update-audit/` 当成目标 vault 根目录。请检查哪些来源或页面已经陈旧，哪些来源其实应该标成 `needs-update` 但现在还没标。",
+      "expected_output": "基于现有 raw、来源页和状态表识别陈旧来源与 needs-update 缺口，并说明依据。",
+      "files": [
+        "evals/files/stale-needs-update-audit"
+      ],
+      "expectations": [
+        "Identifies at least one stale source or page by naming agent-drift-webclip or Agent Memory.md directly",
+        "Flags a specific raw-index.md entry that should likely switch to needs-update",
+        "Explains the stale or needs-update judgment with a timestamp-based evidence chain that mentions both raw_updated_at and last_ingested_at",
+        "Keeps the task scoped to lint by recommending re-ingest only as a follow-up rather than performing it inline"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "把 `evals/files/should-be-page-audit/` 当成目标 vault 根目录。请盘点一下这个 wiki 里哪些概念、人物或主题已经反复出现，值得单独成页，但目前还没拆出来。",
+      "expected_output": "识别重复出现且值得独立成页的实体，并以 lint 发现的形式提出拆页建议。",
+      "files": [
+        "evals/files/should-be-page-audit"
+      ],
+      "expectations": [
+        "Finds at least one repeatedly mentioned concept, person, or topic lacking its own page by naming source identity or 知识漂移",
+        "Explains page-worthiness by saying the entity recurs across multiple pages or plays a stable thematic role",
+        "Presents the result as a lint recommendation to add a page rather than silently creating it",
+        "Keeps the scope on structure quality rather than generic brainstorming or content expansion"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "把 `evals/files/conflict-gap-audit/` 当成目标 vault 根目录。请检查这个 wiki 里关于 Agent Memory / 知识漂移 的说法有没有冲突、哪里证据还不够，并给出下一步维护建议。",
+      "expected_output": "找出冲突说法和证据缺口，区分已知结论、冲突点和后续建议，而不是直接回答成一个统一结论。",
+      "files": [
+        "evals/files/conflict-gap-audit"
+      ],
+      "expectations": [
+        "Distinguishes a source-source conflict from a synthesis overstatement by explicitly saying the problem is not direct source conflict",
+        "Places the main problem on wiki/syntheses/知识漂移综合分析.md",
+        "Identifies at least one evidence gap or verification need using language like 证据不足, 证据缺口, or 待核对",
+        "Keeps the response in audit mode with concrete follow-up actions instead of flattening into a final answer"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "把 `evals/files/negative-boundaries/` 当成目标 vault 根目录。下面这些请求不要都被当成 lint：1) `把 raw/inbox/articles/ 里的这篇新文章 ingest 到 wiki`；2) `这个 wiki 里现在怎么回答如何减少知识漂移？`；3) `直接帮我改写 wiki/topics/Agent Memory.md 这一页的表达`；4) `顺便检查一下 orphan source 和缺失交叉引用`。请保持 lint 的边界，只把真正属于巡检的部分纳入。",
+      "expected_output": "识别 lint 与 ingest、query、单页改写的边界，只保留巡检相关部分。",
+      "files": [
+        "evals/files/negative-boundaries"
+      ],
+      "expectations": [
+        "Recognizes that source intake belongs to ingest, not lint",
+        "Recognizes that answering a knowledge question belongs to query, not lint",
+        "Recognizes that standalone wording edits belong to page editing, not lint",
+        "Keeps only the audit-oriented orphan-source and missing-crosslink work inside lint scope"
+      ]
+    }
+  ]
+}
