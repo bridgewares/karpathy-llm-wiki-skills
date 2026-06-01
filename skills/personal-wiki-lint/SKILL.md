@@ -1,271 +1,372 @@
 ---
 name: personal-wiki-lint
-description: 对个人 LLM Wiki 做巡检、健康检查、一致性检查时，使用这个 skill。只要用户是在检查 `raw/library/` 与 `raw-index.md` 是否一致、查看孤儿页、排查缺失交叉引用、识别冲突或陈旧说法、判断哪些来源应标记为 `needs-update`、检查命名一致性、或盘点哪些实体值得独立成页，就应该主动使用这个 skill，即使用户没有明确说“lint”。 默认先做审计和汇报；如果用户已经明确要求顺手修复、更新状态、补链接或写回结果，再执行对应修改并记录到 `log.md`。 不要用于：初始化或补齐 wiki 骨架；新来源 ingest / re-ingest / 创建来源页；围绕某个问题做 query / 回答 / 比较 / synthesis；或没有巡检意图的单页改写。
+description: 对个人 LLM Wiki 做巡检、健康检查、一致性审计、缺失文档检查、冲突文档识别、弱连接排查、frontmatter 校验或 needs-update 候选判断时使用。适用于检查 raw/library、raw-index、wiki/sources、wiki/knowledge、wiki/syntheses 之间是否一致。不要用于初始化、ingest 新来源、query 问答、写文章或普通单页编辑。
 ---
 
 # Personal Wiki Lint
 
-这个 skill 用于对个人 wiki 做**巡检、健康检查与一致性检查**。
+这个 skill 用于审计个人 wiki 的结构、状态、链接、证据和内容一致性。
 
-目标不是做 init、ingest 或 query，而是找出知识库当前哪些地方不一致、不完整、已陈旧、缺链接、缺页面，或需要后续维护动作。
+lint 默认只读和汇报，不默认修复。只有用户明确说“修复”“补上”“更新状态”“写回结果”“记日志”时，才执行写操作。
+
+本 skill 以 `personal-wiki-init`、`personal-wiki-ingest`、`personal-wiki-query` 的当前 schema 为准：
+
+- raw 只使用 `sources/`、`notes/`
+- wiki 只使用 `sources/`、`knowledge/`、`syntheses/`
+- `wiki/sources/` 是所有 raw item 的来源追踪层，不是 raw `sources/` bucket 的镜像
+- `wiki/knowledge/` 是结构化知识页，不存在 `wiki/notes/`
+- `wiki/syntheses/` 是跨来源、跨知识页的综合页
+- `raw-index.md` 是唯一官方 raw ingest 状态表
+- 页面结构以 `system/workflow.md` 的 `Page Shapes` 为准
 
 ## 适用场景
 
 当用户表达以下意图时使用：
 
 - “帮我做一次 wiki 巡检”
-- “检查一下哪些页面是孤儿页”
-- “看下 `raw-index.md` 和 `raw/library/` 有没有不一致”
-- “找找哪些来源应该标 `needs-update`”
-- “看看现有页面之间有没有冲突说法”
-- “检查缺失的交叉引用和命名不一致”
-- “盘点一下哪些概念 / 人物已经值得独立成页”
+- “检查 raw-index 和 raw/library 是否一致”
+- “看看哪些 raw 文件没有 wiki source page”
+- “找缺失的 knowledge / synthesis 文档”
+- “找冲突文档 / 冲突说法”
+- “检查孤儿页、弱连接页、缺失交叉引用”
+- “检查 frontmatter、tags、page_type、raw_bucket”
+- “哪些来源应该标 needs-update？”
+- “帮我列一个后续维护清单”
 
 如果用户要做的是：
 
-- 初始化骨架或补齐目录 → 这不是本 skill
-- 导入新来源、re-ingest、维护来源入库 → 这不是本 skill
-- 围绕某个问题回答、比较、综合 → 这不是本 skill
-- 只改写单个页面的表达而没有巡检意图 → 这不是本 skill
+- 初始化骨架 -> 这不是本 skill
+- 导入新 raw 来源、移动文件、登记 raw-index、创建来源追踪页 -> 这不是本 skill
+- 围绕某个问题回答、比较、综合或写文章 -> 这不是本 skill
+- 只改写单个页面表达，且没有巡检意图 -> 这不是本 skill
 
-## 工作模式
+## 巡检范围
 
-本 skill 默认支持三类 lint：
-
-1. **一致性巡检**
-   - 检查 `raw/library/`、`raw-index.md`、`wiki/sources/` 是否彼此对得上。
-   - 关注缺失条目、状态不一致、路径不一致、来源页缺失等问题。
-   - 默认目录模型：raw 只使用 `sources`、`notes`；wiki 只使用 `sources`、`notes`、`syntheses`。
-   - 不考虑旧 taxonomy 兼容；不要把 topics/people/concepts/questions 当作当前结构的一部分。
-
-2. **结构巡检**
-   - 检查孤儿页、缺失交叉引用、命名不一致、值得拆页但尚未拆页的实体。
-   - 目标是减少知识碎片和结构断裂。
-
-3. **内容巡检**
-   - 检查冲突信息、陈旧说法、证据缺口，以及应该标记 `needs-update` 但尚未标记的来源。
-   - 目标是暴露知识层的风险，而不是直接伪装成一次 query 或 re-ingest。
-
-## 核心原则
-
-1. **默认把读取目标 vault 当作 lint 的正常步骤**
-   - 对目标 vault 中 `index.md`、`raw-index.md`、`log.md`、`wiki/...`、`raw/library/...` 的读取，属于正常的只读巡检过程。
-   - 只要任务是在做巡检、健康检查、一致性检查，就应直接读取这些文件并完成审计。
-   - 不要把普通只读检查误处理成“先停下来索取额外确认”。
-
-2. **先做审计，再决定是否修复**
-   - 默认先输出发现的问题、证据和建议动作。
-   - 不因为看到了问题就静默大改文件。
-   - 只有当用户明确要求顺手修复、补状态、补链接或写回结果时，才执行修改。
-
-3. **先看结构与状态，再看单页细节**
-   - 先检查 `index.md`、`raw-index.md`、目录结构和关键 wiki 页面之间的关系。
-   - 不要一上来就陷入某一页的文字微调。
-
-4. **区分 lint 与 ingest / query / init**
-   - lint 的目标是发现问题、整理维护清单、必要时执行明确要求的修复。
-   - 它不是新来源入库，不是知识问答，也不是骨架初始化。
-
-5. **把问题分类清楚**
-   - 尽量区分：一致性问题、结构问题、内容问题、建议动作。
-   - 这样后续才知道哪些该走 ingest，哪些该走 query，哪些只需补链接或改状态。
-
-6. **优先给可执行发现，不给空泛评价**
-   - 指出具体页面、具体来源、具体缺口。
-   - 避免只说“有点乱”“建议优化”这种不可落地的话。
-
-7. **不把猜测写成事实**
-   - 判断冲突、陈旧或 `needs-update` 时，要说明依据来自哪里。
-   - 如果只是可疑信号，要明确写成“可能”“建议核对”。
-
-8. **只有写操作才需要进入修改分支**
-   - 纯审计、纯读取、纯汇报时，直接完成巡检即可。
-   - 只有当任务包含修复、补链、改状态、写回 wiki、更新 `log.md` 等写操作时，才进入修改执行分支。
-
-9. **若执行修复，记入 `log.md`**
-   - 纯审计不默认写日志。
-   - 如果这次做了修复、状态更新，或用户明确要求记录，也要记清具体动作。
-
-## lint 目标结果
-
-一次成功 lint 之后，通常应当得到这些结果：
-
-- 找出 `raw/library/`、`raw-index.md` 与 `wiki/sources/` 的不一致项
-- 找出孤儿页、缺失交叉引用、命名不一致或结构断裂
-- 找出冲突说法、陈旧结论、证据缺口
-- 找出应标 `needs-update` 但尚未标记的来源
-- 找出已经值得独立成页但尚未拆页的实体
-- 给出清晰的后续动作建议
-- 如果用户明确要求修复，则完成对应修改并更新 `log.md`
-
-## 执行流程
-
-按下面顺序执行。
-
-### 1. 判断是否属于 lint
-
-先判断用户要做的是不是以下事情：
-
-- 巡检 `raw/library/`、`raw-index.md`、`wiki/sources/` 的一致性
-- 盘点孤儿页、交叉引用缺口、命名一致性
-- 检查页面之间的冲突、陈旧说法与证据不足
-- 判断哪些来源应标 `needs-update`
-- 盘点哪些概念 / 人物 / 主题已经值得独立成页
-
-如果本质上是 init、ingest、query 或普通单页改写，就不要按本 skill 处理。
-
-### 2. 先直接读取导航与状态文件
-
-对目标 vault 的正常 lint，默认直接读取并检查：
+默认检查：
 
 - `index.md`
 - `raw-index.md`
 - `log.md`
-- 相关 `wiki/sources/...`、`wiki/notes/...`、`wiki/syntheses/...`
-- 必要时读取对应的 `raw/library/...`
+- `system/workflow.md`
+- `system/raw-index-rules.md`
+- `raw/library/sources/`
+- `raw/library/notes/`
+- `wiki/sources/`
+- `wiki/knowledge/`
+- `wiki/syntheses/`
 
-按 `wiki/sources/`、`wiki/notes/`、`wiki/syntheses/` 三类检查。
+如果某个按需目录不存在，不直接判错；先判断当前 vault 是否已经发生过需要该目录的行为。
 
-这些读取属于正常的只读巡检，不要先停下来请求“请批准我读取这些文件”之类的额外确认。
+## 核心原则
 
-目的是先建立“当前 wiki 是怎么组织的、最近做了什么、哪些区域最值得检查”的整体图。
+1. **先审计，后修复**
+   - 默认只输出发现、证据、影响和建议动作。
+   - 不静默创建页面、补链接、改状态或写日志。
+   - 用户明确要求修复时，才做最小写操作。
 
-如果读取后信息仍不足，再继续扩展到更相关的页面或 raw 来源；不要因为一开始证据不全就提前结束巡检。
+2. **缺失文档必须陈述清楚**
+   - 发现 raw item 缺少 `wiki/sources/` 追踪页时，列出 raw 路径。
+   - 发现 source page 暗示了稳定知识但缺少 `wiki/knowledge/` 页时，列出 source page 与候选 knowledge 主题。
+   - 发现多个页面形成综合方向但缺少 `wiki/syntheses/` 页时，列出相关页面和建议综合主题。
+   - 不要只说“有缺失”，必须指出缺失什么、依据是什么、建议走 ingest 还是 query 写回。
 
-### 3. 执行一致性巡检
+3. **冲突文档必须陈述清楚**
+   - 发现页面之间有冲突说法时，列出冲突双方或多方页面。
+   - 说明冲突点、各自证据、可能影响。
+   - 区分真正来源冲突、下游总结过强、证据不足和命名不一致。
 
-重点检查：
+4. **raw-index 是状态中心**
+   - 只有 `raw/library/` 中的资料登记到 `raw-index.md`。
+   - `raw/inbox/` 中的文件不应登记。
+   - 状态只允许 `ingested`、`needs-update`。
+   - `needs-update` 必须有 `update_reason`。
+   - `ingested` 不应保留 `update_reason`。
 
-- `raw/library/` 里是否有来源未登记到 `raw-index.md`
-- `raw-index.md` 是否指向不存在或错误的 `source_page`
-- `raw-index.md` 状态与实际情况是否一致
-- `wiki/sources/...` 是否缺失对应来源页
-- 是否存在应为 `needs-update` 但仍写成 `ingested` 的来源
+5. **wiki 三桶职责不可混淆**
+   - `wiki/sources/` 记录 raw item 说了什么。
+   - `wiki/knowledge/` 承载可复用知识。
+   - `wiki/syntheses/` 承载跨来源综合。
+   - 不创建、不建议创建 `wiki/notes/`。
 
-### 4. 执行结构巡检
+6. **frontmatter 与双链都要检查**
+   - frontmatter 用于 Obsidian 属性、检索和 Dataview。
+   - `[[...]]` 双链用于表达知识关系。
+   - tags 不能替代双链，目录位置也不能替代双链。
 
-重点检查：
+7. **不把猜测写成事实**
+   - 证据不足时写“可能”“建议核对”。
+   - 不把可疑信号直接升级为已确认冲突或已确认陈旧。
 
-- 哪些页面完全没有导航入口，或几乎没有被其他页面连接
-- 哪些页面虽然在 `index.md` 里有入口，但仍然缺少来自 note 页 / synthesis 页 / 来源页的互链，只能算“弱连接页”而不是严格孤儿页
-- 哪些 `wiki/notes/...` 页面提到概念 / 人物 / 主题但没有形成合理交叉引用
-- 哪些命名明显不一致，导致页面难找或难串联
-- 哪些实体已经反复出现，值得在 `wiki/notes/` 下拆成独立页面
+## 执行流程
 
-做这一步时要注意：
+### 1. 判断任务边界
 
-- **严格区分“严格孤儿页”与“弱连接页”**。
-- 完全没有导航入口、也没有明显入链的页面，才应优先称为“孤儿页”。
-- 已出现在 `index.md` 或其他显式导航中的页面，如果问题在于缺少互链或上下文承接，更适合写成“弱连接页”“链接不足”或“导航薄弱”，不要误报成孤儿页。
-- 不要因为缺少其他分类目录而报错；当前标准结构只有 `wiki/sources/`、`wiki/notes/`、`wiki/syntheses/`。
+确认用户是在做巡检、健康检查、一致性审计或维护清单。
 
-### 5. 执行内容巡检
+如果用户实际要求 ingest、query、init 或单页编辑，转用对应 skill，不要用 lint 偷偷完成。
 
-重点检查：
+### 2. 建立当前结构视图
 
-- 多个页面之间是否有冲突说法
-- 某些结论是否已被更新来源部分推翻或削弱
-- 是否存在明显证据缺口
-- 哪些问题应该转成后续 query / ingest / 人工核对动作
+读取并记录：
 
-做这一步时要注意：
+- 是否存在 `CLAUDE.md`、`raw-index.md`、`index.md`、`log.md`
+- 是否存在 `system/workflow.md` 和 `system/raw-index-rules.md`
+- `raw/library/sources/` 和 `raw/library/notes/` 当前文件
+- `wiki/sources/`、`wiki/knowledge/`、`wiki/syntheses/` 当前页面
+- `index.md` 是否指向重要页面
+- 最近 `log.md` 是否显示未完成动作
 
-- **优先区分“来源之间互相冲突”与“综合页/主题页把结论写得过强”。**
-- 如果多个来源页其实大体一致，只是某张综合页、主题页或总结页把证据不足的判断写成了确定结论，应优先标为“结论过强”“证据不足”“综合失真”，不要误写成“来源互相冲突”。
-- 真正的“冲突说法”应尽量指出具体冲突双方；若只是下游总结页没有忠实反映上游来源，也要把问题落在总结页本身。
+不要因为按需目录不存在就立即报错。只有当 raw-index、页面链接或日志显示应该存在时，才报缺失。
 
-### 6. 生成结构化巡检结果
+### 3. raw-index 一致性巡检
 
-默认结果应尽量包含：
+检查：
 
-- `一致性问题`
-- `结构问题`
-- `内容问题`
-- `建议动作`
+- `raw/library/sources/` 和 `raw/library/notes/` 中是否有文件未登记到 `raw-index.md`
+- `raw-index.md` 是否登记了不存在的 raw 路径
+- `raw-index.md` 是否登记了仍在 `raw/inbox/` 的文件
+- `status` 是否只使用 `ingested`、`needs-update`
+- `needs-update` 是否有 `update_reason`
+- `ingested` 是否错误保留 `update_reason`
+- `last_status_at` 是否符合 `YYYY-MM-DD HH:MM:SS`
+- `wiki_page` 是否指向存在的 `wiki/sources/` 追踪页
 
-如果巡检范围较小，也至少要给出：
+缺失或错误必须列出具体 raw path / raw-index 行 / wiki_page。
 
-- 发现了什么问题
-- 这些问题分别落在哪些文件或页面
-- 下一步更适合走哪条工作流
+### 4. 来源追踪页巡检
 
-命名上尽量收紧：
+检查每个已登记 raw item：
 
-- 只有证据足够时才用“孤儿页”“冲突说法”这类较强标签。
-- 证据较弱或性质更细时，优先使用“弱连接页”“链接不足”“结论过强”“证据不足”“待核对”等更准确的表述。
+- 是否有对应 `wiki/sources/<source-page>.md`
+- source page frontmatter 是否包含：
+  - `page_type: source`
+  - `tags`
+  - `created_at`
+  - `updated_at`
+  - `raw_path`
+  - `raw_index_id`
+  - `raw_bucket`
+- `raw_bucket` 是否与 `raw_path` 所在 bucket 一致
+- source page 是否有摘要、关键观点、证据 / 摘录
+- source page 是否链接相关 `wiki/knowledge/` 或 `wiki/syntheses/`
+- source page 是否只写“暂无关联”，但 raw 内容明显可抽取知识点
 
-### 7. 仅在明确要求时执行修复
+特别注意：`raw/library/notes/` 中的文件也必须有 `wiki/sources/` 追踪页；不要把 raw notes 直接当成 knowledge page。
 
-如果用户明确要求“顺手修一下”“直接补上”“更新状态并记日志”，才执行对应修改。修复时应：
+### 5. knowledge 巡检
 
-- 优先做最小修改
-- 不把 lint 静默扩张成一次完整 ingest 或 query
-- 更新被触及的目标页面或状态文件
-- 在 `log.md` 追加 lint 记录
+检查 `wiki/knowledge/`：
 
-### 8. 最小验证
+- frontmatter 是否包含 `page_type: knowledge`、`tags`、`created_at`、`updated_at`、`knowledge_type`
+- 是否有当前理解、关键来源、证据、相关 knowledge、不确定或冲突、下一步
+- 关键来源是否链接到 `wiki/sources/`
+- 证据是否能回到 source page 或 raw
+- 是否存在几乎重复的 knowledge page
+- 是否存在稳定知识只散落在 source page，没有独立 knowledge page
+- 是否存在 knowledge page 没有任何 source 支撑
 
-完成后至少检查：
+发现缺失 knowledge 文档时，输出：
 
-- 是否真的围绕巡检目标展开，而没有跑偏到 init / ingest / query
-- 发现的问题是否都有明确落点文件或页面
-- 如果建议了后续动作，是否区分清楚应走哪条工作流
-- 如果执行了修复，相关文件和 `log.md` 是否已更新
+- 候选 knowledge 标题
+- 支撑 source pages
+- 为什么值得独立成页
+- 建议动作：走 ingest 补同步，或走 query 写回
 
-## 输出风格
+### 6. synthesis 巡检
 
-默认用简洁中文汇报，避免长篇解释。
+检查 `wiki/syntheses/`：
 
-推荐回答结构：
+- frontmatter 是否包含 `page_type: synthesis`、`tags`、`created_at`、`updated_at`、`synthesis_type`
+- 是否有范围、当前结论、共识、分歧、证据链、缺口、相关 sources / knowledge
+- 是否链接相关 source pages 和 knowledge pages
+- 是否存在多个 source / knowledge 已经形成稳定综合方向，但没有 synthesis page
+- 是否存在 synthesis 结论过强、证据不足或未反映分歧
+
+发现缺失 synthesis 文档时，输出：
+
+- 建议 synthesis 标题
+- 相关 sources / knowledge
+- 可综合方向
+- 为什么当前适合或暂不适合创建
+- 建议动作：query 写回 synthesis 或先补证据
+
+### 7. 链接与孤儿页巡检
+
+检查：
+
+- `index.md` 是否有重要入口
+- 页面是否缺少入链或出链
+- source page 是否链接对应 knowledge / synthesis
+- knowledge / synthesis 是否反向链接关键 source page
+- 是否存在严格孤儿页：无导航入口、无入链、无明显出链
+- 是否存在弱连接页：有导航但缺少上下文互链
+- 是否存在断链 `[[...]]`
+
+区分：
+
+- 严格孤儿页
+- 弱连接页
+- 断链
+- 缺少反向链接
+
+不要把已经在 `index.md` 有入口的页面误报为严格孤儿页。
+
+### 8. 内容冲突巡检
+
+检查：
+
+- source page 之间是否有明确冲突
+- knowledge page 是否与其关键来源不一致
+- synthesis page 是否遗漏重要分歧
+- synthesis page 是否把弱证据写成强结论
+- 不同页面是否对同一概念使用了不同定义
+- 是否存在陈旧结论被后续来源削弱
+
+输出冲突文档时必须包含：
+
+- 冲突类型：来源冲突 / 总结过强 / 定义不一致 / 证据不足 / 陈旧结论
+- 冲突页面
+- 冲突内容
+- 证据位置
+- 建议动作
+
+不要只写“存在冲突”，也不要在没有证据时强行判定冲突。
+
+### 9. needs-update 候选
+
+可建议 `needs-update` 的情况：
+
+- raw 文件修改时间明显晚于 `last_status_at`
+- `wiki/sources/` 缺失或不符合 Page Shapes
+- 关键 source page 与 raw-index 指向不一致
+- 用户或日志明确标记来源需要刷新
+- source page / knowledge page / synthesis page 的证据链断裂，需要重新同步
+
+不要因为“有待跟进问题”就自动建议 `needs-update`。待跟进问题可以留在页面或建议 query。
+
+### 10. 生成巡检报告
+
+报告必须按问题类型组织，至少包含：
+
+- 一致性问题
+- 缺失文档
+- 冲突文档
+- 结构与链接问题
+- frontmatter / Page Shapes 问题
+- needs-update 候选
+- 建议动作
+
+没有问题的类别可以写“未发现明显问题”。
+
+## 修复规则
+
+只有用户明确要求修复时，才执行写操作。
+
+允许的最小修复：
+
+- 补缺失 frontmatter 字段
+- 修正 `raw_bucket` 与 `raw_path` 不一致
+- 补明显缺失的 `[[...]]` 双链
+- 清空 `ingested` 状态下错误保留的 `update_reason`
+- 为明确候选写入 `needs-update` 和 `update_reason`
+- 更新 `index.md` 的高价值入口
+- 在 `log.md` 追加 lint 修复记录
+
+不允许 lint 自动执行：
+
+- 新来源 ingest
+- 移动 raw 文件
+- 批量重写 wiki 内容
+- 自动创建大量 knowledge / synthesis 页面
+- 自动删除历史页面或目录
+- 自动迁移 `wiki/notes/`
+
+如果修复会变成 ingest 或 query 写回，应建议用户改用对应 skill。
+
+## 输出格式
+
+默认使用：
 
 ```md
 一致性问题：
+- [级别] 文件/页面：问题。证据：...。建议：...
+
+缺失文档：
+- [级别] 缺失：...。依据：...。建议动作：...
+
+冲突文档：
+- [级别] 冲突类型：...
+  冲突页面：...
+  冲突内容：...
+  证据：...
+  建议动作：...
+
+结构与链接问题：
 - ...
 
-结构问题：
+frontmatter / Page Shapes 问题：
 - ...
 
-内容问题：
+needs-update 候选：
 - ...
 
 建议动作：
 - ...
 ```
 
-如果已经执行了修复，推荐补充：
+级别建议：
+
+- `P0`：状态或证据链严重错误，影响可信度
+- `P1`：缺失关键页面、冲突文档、明显断链
+- `P2`：弱连接、frontmatter 不完整、建议补强
+- `P3`：命名、标签、导航优化
+
+如果已经执行修复，追加：
 
 ```md
+已修复：
+- ...
+
 已更新：
 - raw-index.md
 - wiki/sources/...
-- wiki/notes/...
+- wiki/knowledge/...
 - wiki/syntheses/...
+- index.md
 - log.md
 ```
 
 ## 不要这样做
 
-- 不要把 lint 做成 init：不要补整套骨架或重建目录
-- 不要把 lint 做成 ingest：不要把新来源直接入库、建来源页或重做完整来源处理
-- 不要把 lint 做成 query：不要把巡检任务偷换成回答某个知识问题
-- 不要把普通单页改写任务混进 lint
-- 不要只给抽象评价而不给具体落点
-- 不要在用户未要求时静默大规模修复
-- 不要把可疑信号写成已经确认的事实
+- 不要把 lint 做成 init。
+- 不要把 lint 做成 ingest。
+- 不要把 lint 做成 query 或文章写作。
+- 不要创建 `wiki/notes/`。
+- 不要只给抽象评价，不列具体文件或页面。
+- 不要发现缺失文档却不说缺什么。
+- 不要发现冲突文档却不列冲突双方。
+- 不要在用户未要求时静默修复。
+- 不要把可疑信号写成已确认事实。
+- 不要因为按需目录不存在就直接报错。
 
 ## 示例触发
 
 **示例 1**
-用户：`帮我检查一下这个 wiki 里哪些页面是孤儿页，哪些来源应该标 needs-update。`
+用户：`检查 raw-index 和 raw/library 是否一致。`
 
-动作：使用本 skill，做结构 + 内容巡检，输出问题清单和建议动作。
+动作：使用本 skill，检查 raw-index 条目、raw 路径、wiki_page 和状态字段，输出具体不一致项。
 
 **示例 2**
-用户：`看下 raw-index.md 和 raw/library/ 现在有没有不一致，顺手修一下并记日志。`
+用户：`帮我找缺失的文档和冲突的文档。`
 
-动作：使用本 skill，先做一致性巡检，再执行最小修复并更新 `log.md`。
+动作：使用本 skill，列出缺失 source / knowledge / synthesis 文档，以及冲突页面、冲突内容、证据和建议动作。
 
 **示例 3**
-用户：`盘点一下 Agent Memory 这个主题下哪些概念已经值得单独成页，哪些页面还缺交叉引用。`
+用户：`哪些页面是孤儿页，哪些链接断了？`
 
-动作：使用本 skill，做结构巡检，输出拆页建议和交叉引用缺口，而不是把它做成 query 或 ingest。
+动作：使用本 skill，区分严格孤儿页、弱连接页、断链和缺少反向链接。
+
+**示例 4**
+用户：`顺手把明显的 frontmatter 问题修一下并记日志。`
+
+动作：使用本 skill，先审计，再执行最小修复，最后更新 `log.md`。
