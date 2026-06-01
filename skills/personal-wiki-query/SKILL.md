@@ -235,7 +235,26 @@ query 不导入新来源，不移动 raw 文件，不维护 `raw-index.md`。它
 - 如果这是上一轮回答的写入请求，必须复用上一轮答案，不重新生成。
 - 普通 md 文件不一定是 wiki page；若写入 wiki，则必须遵守 Page Shapes。
 
-### 9. 更新 log.md
+### 9. 更新 index.md
+
+只有实际写入或更新 md 文件时才维护 `index.md`。纯回答不更新 `index.md`。
+
+写入后必须同步优化 `index.md`：
+
+- 新增或更新的重要 `wiki/knowledge/` 页面，加入高价值入口。
+- 新增或更新的重要 `wiki/syntheses/` 页面，加入高价值入口。
+- 用户指定路径保存的文章，如果属于长期可复用内容，加入合适入口；一次性草稿不强行加入。
+- 如果本次写入解决了 `index.md` “待处理”里的事项，应从“待处理”移除。
+- 在“最近新增”追加一条简短记录，说明时间、动作类型、更新页面和是否复用上一轮答案。
+
+维护规则：
+
+- “待处理”只保留尚未完成、需要后续 action 的事项。
+- 已完成的写回、文章保存、synthesis 更新，不要继续放在“待处理”。
+- “最近新增”使用真实当前本地时间，格式 `YYYY-MM-DD HH:MM:SS`，写入前必须读取时间。
+- 不要把 `log.md` 的完整记录复制到 `index.md`；`index.md` 只保留高价值摘要入口。
+
+### 10. 更新 log.md
 
 只有实际写文件或更新 wiki 页面时才追加 `log.md`。
 
@@ -261,6 +280,7 @@ query 不导入新来源，不移动 raw 文件，不维护 `raw-index.md`。它
 - 写回 knowledge/synthesis 时，frontmatter 是否符合 Page Shapes
 - 写回页面是否包含必要 `[[...]]` 双链
 - 如果用户是二次确认写回，内容是否以上一轮回答为底稿
+- 如果写文件，`index.md` 是否更新高价值入口、清理已完成待处理项并追加“最近新增”
 - 如果写文件，`log.md` 是否追加记录
 
 ## 汇报格式
@@ -289,6 +309,10 @@ query 不导入新来源，不移动 raw 文件，不维护 `raw-index.md`。它
 ```md
 已写回：
 - wiki/knowledge/... 或 wiki/syntheses/... 或 用户指定路径
+
+已更新：
+- index.md
+- log.md
 
 依据：
 - ...
@@ -329,4 +353,4 @@ query 不导入新来源，不移动 raw 文件，不维护 `raw-index.md`。它
 **示例 4**
 用户：`把上面的回答写入 wiki。`
 
-动作：使用本 skill，复用上一轮已确认答案，按 Page Shapes 写入 `wiki/knowledge/` 或 `wiki/syntheses/`，不重新生成不同版本。
+动作：使用本 skill，复用上一轮已确认答案，按 Page Shapes 写入 `wiki/knowledge/` 或 `wiki/syntheses/`，更新 `index.md` 与 `log.md`，不重新生成不同版本。

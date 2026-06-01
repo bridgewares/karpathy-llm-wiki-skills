@@ -436,8 +436,18 @@ frontmatter 至少包含 `page_type: synthesis`、`tags`、`created_at`、`updat
 - 值得追踪的 knowledge page
 - 重要 synthesis
 - 当前待处理问题或动作
+- 本次 ingest / re-ingest / batch ingest 的完成记录，写入“最近新增”
 
 不要把 `index.md` 变成全量文件清单。
+
+维护规则：
+
+- “待处理”只放尚未完成、需要后续 action 的事项。
+- 已完成的 ingest、re-ingest、补链、frontmatter 修复、schema 对齐，不要写在“待处理”。
+- 如果“待处理”里原有事项已经被本次 ingest 完成，应移出“待处理”，并在“最近新增”中追加完成记录。
+- “最近新增”应使用真实当前本地时间，格式 `YYYY-MM-DD HH:MM:SS`，写入前必须读取时间。
+- “最近新增”记录应简短说明动作类型、影响范围和关键页面，例如 source pages / knowledge / synthesis。
+- 不要把 `log.md` 的完整日志复制到 `index.md`；`index.md` 只保留高价值摘要入口。
 
 ### 11. 追加 log.md
 
@@ -479,6 +489,8 @@ frontmatter 至少包含 `page_type: synthesis`、`tags`、`created_at`、`updat
 - 当前来源有稳定方法论、概念、问题或原则时，是否创建或更新 knowledge page
 - 是否检查已有 syntheses，并在 source page 写出候选综合方向
 - `index.md` 是否只更新高价值入口
+- `index.md` 的“待处理”是否没有保留本次已完成事项
+- `index.md` 的“最近新增”是否追加本次 ingest / re-ingest / batch ingest 摘要
 - `log.md` 是否追加记录
 
 ## 汇报格式

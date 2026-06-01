@@ -114,6 +114,8 @@ lint 默认只读和汇报，不默认修复。只有用户明确说“修复”
 - `raw/library/sources/` 和 `raw/library/notes/` 当前文件
 - `wiki/sources/`、`wiki/knowledge/`、`wiki/syntheses/` 当前页面
 - `index.md` 是否指向重要页面
+- `index.md` 的“待处理”是否只包含尚未完成的事项
+- `index.md` 的“最近新增”是否覆盖最近一次 ingest、query 写入或 lint 修复
 - 最近 `log.md` 是否显示未完成动作
 
 不要因为按需目录不存在就立即报错。只有当 raw-index、页面链接或日志显示应该存在时，才报缺失。
@@ -195,6 +197,8 @@ lint 默认只读和汇报，不默认修复。只有用户明确说“修复”
 检查：
 
 - `index.md` 是否有重要入口
+- `index.md` 的“待处理”是否把已完成事项误写为待处理
+- `index.md` 的“最近新增”是否漏掉最近的 ingest / query-writeback / lint-repair
 - 页面是否缺少入链或出链
 - source page 是否链接对应 knowledge / synthesis
 - knowledge / synthesis 是否反向链接关键 source page
@@ -208,6 +212,7 @@ lint 默认只读和汇报，不默认修复。只有用户明确说“修复”
 - 弱连接页
 - 断链
 - 缺少反向链接
+- index 陈旧或待处理误归类
 
 不要把已经在 `index.md` 有入口的页面误报为严格孤儿页。
 
@@ -270,7 +275,17 @@ lint 默认只读和汇报，不默认修复。只有用户明确说“修复”
 - 清空 `ingested` 状态下错误保留的 `update_reason`
 - 为明确候选写入 `needs-update` 和 `update_reason`
 - 更新 `index.md` 的高价值入口
+- 清理 `index.md` 中已经完成但仍留在“待处理”的事项
+- 将本次 lint 修复摘要追加到 `index.md` 的“最近新增”
 - 在 `log.md` 追加 lint 修复记录
+
+`index.md` 修复规则：
+
+- “待处理”只保留尚未完成、需要后续 action 的事项。
+- 已完成的补链、frontmatter 修复、schema 对齐、source / knowledge / synthesis 更新，不应继续放在“待处理”。
+- 执行修复后，必须在“最近新增”追加一条简短记录，说明时间、动作类型和修复范围。
+- “最近新增”使用真实当前本地时间，格式 `YYYY-MM-DD HH:MM:SS`，写入前必须读取时间。
+- 不要把 `log.md` 的完整记录复制进 `index.md`；`index.md` 只写高价值摘要入口。
 
 不允许 lint 自动执行：
 
@@ -302,6 +317,9 @@ lint 默认只读和汇报，不默认修复。只有用户明确说“修复”
   建议动作：...
 
 结构与链接问题：
+- ...
+
+index.md 问题：
 - ...
 
 frontmatter / Page Shapes 问题：
@@ -369,4 +387,4 @@ needs-update 候选：
 **示例 4**
 用户：`顺手把明显的 frontmatter 问题修一下并记日志。`
 
-动作：使用本 skill，先审计，再执行最小修复，最后更新 `log.md`。
+动作：使用本 skill，先审计，再执行最小修复，最后更新 `index.md` 和 `log.md`。
