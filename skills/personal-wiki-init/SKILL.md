@@ -119,7 +119,7 @@ system/
 | `raw/library/` | 正式原始资料库。只有这里的资料才登记到 `raw-index.md`。 |
 | `raw/inbox/sources/` / `raw/library/sources/` | 外部来源原文，如文章、网页、论文、PDF、访谈、视频文字稿、书摘。 |
 | `raw/inbox/notes/` / `raw/library/notes/` | 用户自己的原始笔记、摘录、临时记录。这里的 notes 是 raw 笔记，不是 wiki 知识页。 |
-| `wiki/sources/` | 来源页。每页对应一个 raw 来源，回答“这个来源说了什么”。 |
+| `wiki/sources/` | 来源追踪页。每页对应一个 raw item，回答“这个 raw item 说了什么”，包括 `raw/library/sources/` 和 `raw/library/notes/`。 |
 | `wiki/knowledge/` | 结构化知识页。承载可复用的方法论、概念、问题、决策原则或操作经验。 |
 | `wiki/syntheses/` | 综合页。承载跨来源、跨知识页的比较、共识、分歧和阶段性结论。 |
 | `system/` | 工作流、页面结构和 raw-index 规则。 |
@@ -152,7 +152,7 @@ wiki/syntheses/
 这些目录由后续行为触发：
 
 - ingest 外部来源时，创建 `raw/inbox/sources/`、`raw/library/sources/`、`wiki/sources/`
-- ingest 用户原始笔记时，创建 `raw/inbox/notes/`、`raw/library/notes/`，必要时写入 `wiki/knowledge/`
+- ingest 用户原始笔记时，创建 `raw/inbox/notes/`、`raw/library/notes/`、`wiki/sources/`，必要时写入 `wiki/knowledge/`
 - query 写回结构化知识页时，创建 `wiki/knowledge/`
 - query 写回跨来源综合时，创建 `wiki/syntheses/`
 
@@ -171,6 +171,7 @@ wiki/syntheses/
 - 是否已有 `raw-index.md`、`index.md`、`log.md`
 - `raw/` 是否已有 `inbox/` 与 `library/`
 - `system/workflow.md` 是否存在并包含 `Page Shapes`
+- `system/workflow.md` 是否定义 wiki 页面 frontmatter 与 tags 规则
 - `system/raw-index-rules.md` 是否存在
 - 现有规则文件中是否包含旧 schema，例如 `wiki/notes/`、`Note Page`、`关联 notes`、`source、note、synthesis`
 - 是否存在历史 `wiki/notes/` 目录；如果存在，只报告，不迁移
@@ -283,6 +284,7 @@ wiki/syntheses/
 - ingest/query/lint 工作流
 - Obsidian 双链规则
 - 命名规范与时间格式
+- 页面 frontmatter 规则
 - 页面结构规则 `Page Shapes`
 
 `Page Shapes` 是页面生成的唯一结构来源，至少包含：
@@ -290,11 +292,30 @@ wiki/syntheses/
 ```md
 ## Page Shapes
 
+### Frontmatter Rules
+
+所有 wiki 页面必须使用 YAML frontmatter。frontmatter 用于 Obsidian 属性、检索和 Dataview，不替代正文证据与 `[[...]]` 双链。
+
+通用字段：
+- `page_type`：`source`、`knowledge` 或 `synthesis`
+- `tags`：包含页面类型标签和 3-8 个从内容抽取的关键词
+- `created_at`：首次创建时间，格式 `YYYY-MM-DD HH:MM:SS`
+- `updated_at`：最近更新时间，格式 `YYYY-MM-DD HH:MM:SS`
+
+类型标签：
+- source page 使用 `llm-wiki/source`
+- knowledge page 使用 `llm-wiki/knowledge`
+- synthesis page 使用 `llm-wiki/synthesis`
+
+source page 额外字段：
+- `raw_bucket`：`sources` 或 `notes`，必须与 `raw_path` 所在 bucket 一致
+
 ### Source Page
 
 用于 `wiki/sources/`，由 ingest 创建或更新。
 
 必须包含：
+- YAML frontmatter：`page_type: source`、`tags`、`created_at`、`updated_at`、`raw_path`、`raw_index_id`、`raw_bucket`
 - 基本信息
 - 原始路径
 - 摘要
@@ -309,7 +330,7 @@ wiki/syntheses/
 用于 `wiki/knowledge/`，由 ingest 或 query 创建或更新。
 
 必须包含：
-- type
+- YAML frontmatter：`page_type: knowledge`、`tags`、`created_at`、`updated_at`、`knowledge_type`
 - 当前理解
 - 关键来源
 - 证据
@@ -322,6 +343,7 @@ wiki/syntheses/
 用于 `wiki/syntheses/`，由 query 或高价值 ingest 创建或更新。
 
 必须包含：
+- YAML frontmatter：`page_type: synthesis`、`tags`、`created_at`、`updated_at`、`synthesis_type`
 - 范围
 - 当前结论
 - 共识
@@ -529,11 +551,30 @@ wiki 下只按需使用：
 
 ## Page Shapes
 
+### Frontmatter Rules
+
+所有 wiki 页面必须使用 YAML frontmatter。frontmatter 用于 Obsidian 属性、检索和 Dataview，不替代正文证据与 `[[...]]` 双链。
+
+通用字段：
+- `page_type`：`source`、`knowledge` 或 `synthesis`
+- `tags`：包含页面类型标签和 3-8 个从内容抽取的关键词
+- `created_at`：首次创建时间，格式 `YYYY-MM-DD HH:MM:SS`
+- `updated_at`：最近更新时间，格式 `YYYY-MM-DD HH:MM:SS`
+
+类型标签：
+- source page 使用 `llm-wiki/source`
+- knowledge page 使用 `llm-wiki/knowledge`
+- synthesis page 使用 `llm-wiki/synthesis`
+
+source page 额外字段：
+- `raw_bucket`：`sources` 或 `notes`，必须与 `raw_path` 所在 bucket 一致
+
 ### Source Page
 
 用于 `wiki/sources/`，由 ingest 创建或更新。
 
 必须包含：
+- YAML frontmatter：`page_type: source`、`tags`、`created_at`、`updated_at`、`raw_path`、`raw_index_id`、`raw_bucket`
 - 基本信息
 - 原始路径
 - 摘要
@@ -548,7 +589,7 @@ wiki 下只按需使用：
 用于 `wiki/knowledge/`，由 ingest 或 query 创建或更新。
 
 必须包含：
-- type
+- YAML frontmatter：`page_type: knowledge`、`tags`、`created_at`、`updated_at`、`knowledge_type`
 - 当前理解
 - 关键来源
 - 证据
@@ -561,6 +602,7 @@ wiki 下只按需使用：
 用于 `wiki/syntheses/`，由 query 或高价值 ingest 创建或更新。
 
 必须包含：
+- YAML frontmatter：`page_type: synthesis`、`tags`、`created_at`、`updated_at`、`synthesis_type`
 - 范围
 - 当前结论
 - 共识
@@ -613,6 +655,7 @@ raw 下不使用 `syntheses`。
 - 关键目录是否存在
 - 关键根文件是否存在
 - `system/workflow.md` 是否存在并包含 `Page Shapes`
+- `system/workflow.md` 是否定义 wiki 页面 frontmatter 与 tags 规则
 - `system/raw-index-rules.md` 是否存在
 - `CLAUDE.md` 是否提到 `raw-index.md`
 - `CLAUDE.md` 与 `system/workflow.md` 是否没有继续把 wiki 第二桶定义为 `notes/`

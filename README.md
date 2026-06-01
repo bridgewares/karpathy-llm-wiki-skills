@@ -202,6 +202,8 @@ CLAUDE.md
 - `raw/inbox/` 和 `raw/library/` 只按需创建 `sources/`、`notes/`
 - `wiki/` 只按需创建 `sources/`、`knowledge/`、`syntheses/`
 - 主题、人物、概念、问题等细分放在页面 frontmatter、标签或正文小节中，不作为默认目录名
+- wiki 页面统一使用 YAML frontmatter：`page_type`、`tags`、`created_at`、`updated_at` 是通用字段；source page 额外使用 `raw_path`、`raw_index_id`、`raw_bucket`，knowledge page 额外使用 `knowledge_type`，synthesis page 额外使用 `synthesis_type`
+- `tags` 用于 Obsidian 属性、检索和 Dataview，包含页面类型标签与抽取关键词；它不替代 `[[...]]` 双链
 
 ---
 
@@ -210,7 +212,7 @@ CLAUDE.md
 这组 skills 采用固定的最小目录模型：
 
 - `init` 只建立最小可用骨架，默认保留 `raw/inbox/`、`raw/library/` 和 `wiki/` 这些稳定入口，不强制预建大量 raw 或 wiki 子目录。
-- `ingest` 可以把来源从 inbox 整理到 library，但 raw 来源正文仍是事实源，不应被改写；移动后也要保留 inbox bucket 目录，保证后续入口稳定。需要创建 source/knowledge/synthesis 页面时，再创建对应 wiki 子目录。
+- `ingest` 对 `raw/inbox/sources/` 与 `raw/inbox/notes/` 使用一致逻辑：默认移动到对应 `raw/library/<bucket>/`，移动后只保留 inbox bucket 目录，不保留已入库文件。raw 正文仍是事实源，不应被改写；wiki 侧统一提取 source/knowledge/synthesis 的核心联系，并按需创建对应 wiki 子目录与 frontmatter。
 - `query` 的高价值答案可以写回 wiki；如果用户是在上一轮 query 后二次确认写回，应复用上一轮已确认答案，而不是重新生成一份可能不一致的文档。需要写回 knowledge/syntheses 时，再创建对应 wiki 子目录。
 
 目录分类统一收敛为 raw 的 `sources / notes` 与 wiki 的 `sources / knowledge / syntheses`，避免 LLM 在细分目录之间做不必要的分类判断。
@@ -220,7 +222,7 @@ CLAUDE.md
 - `raw/inbox/sources/`：待处理外部来源原文。
 - `raw/library/sources/`：已纳入正式知识流的外部来源原文。
 - `raw/inbox/notes/`、`raw/library/notes/`：用户原始笔记、摘录、临时记录，仍属于 raw 事实源。
-- `wiki/sources/`：来源页，回答“这个来源说了什么”。
+- `wiki/sources/`：来源追踪页，回答“这个 raw item 说了什么”；它不等于 raw `sources/` bucket，也覆盖 `raw/library/notes/` 的来源追踪。`raw_bucket` 只用于回溯原始路径，`sources` 与 `notes` 的 ingest 处理逻辑一致。
 - `wiki/knowledge/`：结构化知识页，承载方法论、概念、问题、决策原则或操作经验。
 - `wiki/syntheses/`：综合页，承载跨来源、跨知识页的比较、共识、分歧和阶段性结论。
 
