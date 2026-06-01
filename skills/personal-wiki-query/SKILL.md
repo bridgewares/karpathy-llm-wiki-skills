@@ -1,6 +1,6 @@
 ---
 name: personal-wiki-query
-description: 基于个人 LLM Wiki 已有内容进行查询、回答、比较、总结与核对时，使用这个 skill。只要用户是在问 wiki 里现在怎么说、某个问题当前有哪些答案或证据、几份来源或页面之间如何比较、某个主题还有哪些冲突与缺口，或希望先基于现有 wiki 回答、必要时再回到 raw 补证据，就应该主动使用这个 skill，即使用户没有明确说“query”。 默认先回答，不默认落盘；如果结果明显值得长期沉淀，应主动建议写回 `wiki/questions/` 或 `wiki/syntheses/`，若用户原提示已明确要求写回，则直接执行。 不要用于：初始化或补齐 wiki 骨架；新来源 ingest、移动文件、维护 raw-index、创建来源页；lint/巡检/一致性检查；或不围绕提问、检索、比较、总结的单页编辑。
+description: 基于个人 LLM Wiki 已有内容进行查询、回答、比较、总结与核对时，使用这个 skill。只要用户是在问 wiki 里现在怎么说、某个问题当前有哪些答案或证据、几份来源或页面之间如何比较、某个主题还有哪些冲突与缺口，或希望先基于现有 wiki 回答、必要时再回到 raw 补证据，就应该主动使用这个 skill，即使用户没有明确说“query”。 默认先回答，不默认落盘；如果结果明显值得长期沉淀，应主动建议写回 `wiki/notes/` 或 `wiki/syntheses/`，若用户原提示已明确要求写回，则直接执行。 不要用于：初始化或补齐 wiki 骨架；新来源 ingest、移动文件、维护 raw-index、创建来源页；lint/巡检/一致性检查；或不围绕提问、检索、比较、总结的单页编辑。
 ---
 
 # Personal Wiki Query
@@ -25,7 +25,7 @@ description: 基于个人 LLM Wiki 已有内容进行查询、回答、比较、
 - 初始化骨架 → 这不是本 skill
 - 导入具体来源、移动文件、登记 `raw-index.md`、建 source page → 这不是本 skill
 - 检查孤儿页、交叉引用、一致性、`needs-update` → 这不是本 skill
-- 只编辑单个 topic / concept / person / question 页面而没有 query 意图 → 这不是本 skill
+- 只编辑单个 note 页面而没有 query 意图 → 这不是本 skill
 
 ## 工作模式
 
@@ -40,7 +40,7 @@ description: 基于个人 LLM Wiki 已有内容进行查询、回答、比较、
    - 目标是形成结构化比较或阶段性总结。
 
 3. **回写增强**
-   - 用户明确要求把 query 结果写回 `wiki/questions/` 或 `wiki/syntheses/`。
+   - 用户明确要求把 query 结果写回 `wiki/notes/` 或 `wiki/syntheses/`。
    - 或者 query 结果明显具有长期复用价值，应主动建议沉淀。
    - 如果是否落盘仍有判断空间，则先询问用户，而不是静默写入。
 
@@ -51,7 +51,8 @@ description: 基于个人 LLM Wiki 已有内容进行查询、回答、比较、
    - 不要一上来就直接扎进 `raw/`。
 
 2. **优先复用已有知识页**
-   - 优先读取相关 `wiki/questions/`、`wiki/syntheses/`、`wiki/topics/`、`wiki/concepts/`、`wiki/people/`、`wiki/projects/`、`wiki/timelines/`、`wiki/sources/`。
+   - 优先读取相关 `wiki/sources/`、`wiki/notes/`、`wiki/syntheses/`。
+   - `topic`、`person`、`concept`、`question` 等细分应作为页面内部类型或标签理解，不假设存在同名目录。
    - query 的目标是复用和整合，而不是每次都重新整理来源。
 
 3. **只有在 wiki 信息不足时才回到 `raw/`**
@@ -75,6 +76,11 @@ description: 基于个人 LLM Wiki 已有内容进行查询、回答、比较、
    - 缺证据时要说明不足。
    - 发现来源或页面之间有冲突，要明确标出冲突，不强行统一成单一说法。
 
+8. **写回必须保持与已确认答案一致**
+   - Query 的价值在于把一次探索沉淀成可复用 wiki 内容；如果用户二次确认“把上面的答案写入 md / 写回 wiki”，应复用上一轮 query 答案作为写回底稿。
+   - 写回时可以做结构化、去重、补链接和格式整理，但不要重新生成一份结论不同的文档。
+   - 如果当前上下文无法可靠取得上一轮答案，必须先说明无法保证一致，并向用户确认是否重新生成或让用户提供要写回的文本。
+
 ## query 目标结果
 
 一次成功 query 之后，通常应当得到这些结果：
@@ -84,7 +90,7 @@ description: 基于个人 LLM Wiki 已有内容进行查询、回答、比较、
 - 如有必要，回答补充了来自 `raw/` 的证据
 - 回答中明确区分了结论、依据、冲突和空白
 - 如果结果值得长期保留，给出了沉淀建议
-- 如果用户明确要求落盘，则更新了对应 `wiki/questions/...` 或 `wiki/syntheses/...` 页面
+- 如果用户明确要求落盘，则更新了对应 `wiki/notes/...` 或 `wiki/syntheses/...` 页面
 - 如执行了写回，`log.md` 已追加记录
 
 ## 执行流程
@@ -97,7 +103,7 @@ description: 基于个人 LLM Wiki 已有内容进行查询、回答、比较、
 
 - 询问某个问题当前在 wiki 中的答案
 - 检索与某个主题有关的现有页面
-- 比较多个来源页、主题页、概念页、人物页或综合页
+- 比较多个来源页、note 页或综合页
 - 归纳一个主题当前的主要结论、证据和冲突
 - 核对 wiki 说法是否能被已有来源支持
 
@@ -109,20 +115,15 @@ description: 基于个人 LLM Wiki 已有内容进行查询、回答、比较、
 
 - 当前重点主题入口
 - 相关知识页区域大致在哪
-- 是否已有明显对应的问题页、综合页或来源页路径
+- 是否已有明显对应的 note、综合页或来源页路径
 
 ### 3. 优先读取相关 `wiki/` 页面
 
 优先从这些地方找答案：
 
-- `wiki/questions/...`
-- `wiki/syntheses/...`
-- `wiki/topics/...`
-- `wiki/concepts/...`
-- `wiki/people/...`
-- `wiki/projects/...`
-- `wiki/timelines/...`
 - `wiki/sources/...`
+- `wiki/notes/...`
+- `wiki/syntheses/...`
 
 读取时重点关注：
 
@@ -167,8 +168,10 @@ description: 基于个人 LLM Wiki 已有内容进行查询、回答、比较、
 
 写回落点规则：
 
-- `wiki/questions/...`：更适合“某个问题当前怎么回答”
+- query 写回只在 `wiki/notes/` 或 `wiki/syntheses/` 中选择。
+- `wiki/notes/...`：更适合“某个问题当前怎么回答”、单主题说明、人物/概念/问题类知识页
 - `wiki/syntheses/...`：更适合“跨来源综合、比较、专题总结”
+- 需要写回时才创建对应 `wiki/notes/` 或 `wiki/syntheses/` 目录；不要假设 init 已预建这些目录
 
 如果用户已经明确要求“写回 / 记下来 / 落盘到 wiki”，则直接执行对应写回。
 如果是否落盘仍有判断空间，则先问用户，而不是直接写入。
@@ -177,8 +180,9 @@ description: 基于个人 LLM Wiki 已有内容进行查询、回答、比较、
 
 如果用户明确要求落盘，或已获得确认，应：
 
-- 优先更新已有 `wiki/questions/...` 或 `wiki/syntheses/...` 页面
+- 优先更新已有 `wiki/notes/...` 或 `wiki/syntheses/...` 页面
 - 只有确有必要时才新建最小新页
+- 如果用户是基于上一轮 query 结果二次确认写回，复用上一轮 query 答案，不重新生成不同版本
 - 保持结构化内容，而不是把聊天记录原样贴进去
 - 在 `log.md` 追加 query / synthesis 类记录
 
@@ -190,6 +194,7 @@ description: 基于个人 LLM Wiki 已有内容进行查询、回答、比较、
 - 如果读取了 `raw/`，是否确实是为当前 query 补证据
 - 回答是否区分了结论、依据、冲突或空白
 - 如果建议了沉淀，建议的落点是否合理
+- 如果是二次确认写回，写入内容是否与上一轮 query 答案保持一致
 - 如果执行了写回，目标页面和 `log.md` 是否已更新
 
 ## 输出风格
@@ -212,14 +217,14 @@ description: 基于个人 LLM Wiki 已有内容进行查询、回答、比较、
 - ...
 
 沉淀建议：
-- 可考虑写回 `wiki/questions/...` / `wiki/syntheses/...`
+- 可考虑写回 `wiki/notes/...` / `wiki/syntheses/...`
 ```
 
 如果已经执行了落盘，推荐补充：
 
 ```md
 已更新：
-- wiki/questions/...
+- wiki/notes/...
 - wiki/syntheses/...
 - log.md
 ```
@@ -230,6 +235,7 @@ description: 基于个人 LLM Wiki 已有内容进行查询、回答、比较、
 - 不要在 `wiki/` 已足够时直接跳到 `raw/`
 - 不要把轻量一次性回答默认写入 wiki
 - 不要在用户未明确要求且价值判断仍模糊时静默落盘
+- 不要在用户要求“把上面内容写入 md / 写回 wiki”时重新生成一份结论不一致的文档
 - 不要把冲突信息强行抹平成单一结论
 - 不要把猜测写成来源或页面已经明确支持的事实
 - 不要把普通单页编辑任务混进 query
@@ -239,12 +245,12 @@ description: 基于个人 LLM Wiki 已有内容进行查询、回答、比较、
 **示例 1**
 用户：`这个 wiki 里现在怎么回答“如何减少知识漂移”？先基于已有页面说。`
 
-动作：使用本 skill，先看 `index.md` 和相关 `wiki/questions/...`、`wiki/topics/...` 页面，给出结构化回答。
+动作：使用本 skill，先看 `index.md` 和相关 `wiki/notes/...`、`wiki/sources/...` 页面，给出结构化回答。
 
 **示例 2**
 用户：`比较一下 Agent Memory 这个主题下几份来源的共识和分歧。`
 
-动作：使用本 skill，基于多个 `wiki/sources/...`、`wiki/topics/...` 或 `wiki/syntheses/...` 页面做比较和归纳。
+动作：使用本 skill，基于多个 `wiki/sources/...`、`wiki/notes/...` 或 `wiki/syntheses/...` 页面做比较和归纳。
 
 **示例 3**
 用户：`先根据现有 wiki 回答，如果证据不够，再回原文补。`
@@ -252,6 +258,6 @@ description: 基于个人 LLM Wiki 已有内容进行查询、回答、比较、
 动作：使用本 skill，优先读取 `wiki/`，只有在信息不足时再去 `raw/library/` 补证据。
 
 **示例 4**
-用户：`把这个问题当前答案整理出来，并写回 wiki/questions。`
+用户：`把这个问题当前答案整理出来，并写回 wiki/notes。`
 
-动作：使用本 skill，先回答，再直接更新对应 `wiki/questions/...` 页面并记日志，不再额外确认是否落盘。
+动作：使用本 skill，先回答，再直接更新对应 `wiki/notes/...` 页面并记日志，不再额外确认是否落盘。

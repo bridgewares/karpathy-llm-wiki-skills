@@ -10,7 +10,7 @@
       ],
       "expectations": [
         "Answers the question using existing wiki content rather than treating the task as init or ingest",
-        "Uses or cites relevant wiki pages such as question, topic, synthesis, source, concept, or person pages",
+        "Uses or cites relevant wiki pages under wiki/sources, wiki/notes, or wiki/syntheses",
         "Provides a structured answer with a current conclusion and supporting evidence or page references",
         "Does not move raw files, create source intake records, or otherwise perform ingest-specific actions"
       ]
@@ -46,34 +46,49 @@
     {
       "id": 4,
       "prompt": "把 `evals/files/high-value-suggest-writeback/` 当成目标 vault 根目录。请整理这个 wiki 里关于 `如何减少知识漂移？` 的当前答案、主要依据和仍缺少的部分；如果你觉得这次结果值得长期保留，可以提出沉淀建议，但我这次没有明确要求你写回。",
-      "expected_output": "先完成结构化回答，并对明显高价值结果主动建议写回 questions 或 syntheses，而不是默认静默落盘。",
+      "expected_output": "先完成结构化回答，并对明显高价值结果主动建议写回 notes 或 syntheses，而不是默认静默落盘。",
       "files": [
         "evals/files/high-value-suggest-writeback"
       ],
       "expectations": [
         "Answers the question before discussing persistence",
-        "Proactively suggests writing back to wiki/questions or wiki/syntheses when the result appears durable or reusable",
+        "Proactively suggests writing back to wiki/notes or wiki/syntheses when the result appears durable or reusable",
         "Does not silently persist the answer when the user did not explicitly request write-back",
         "Chooses a plausible suggested write-back target based on whether the result is a stable question or a broader synthesis"
       ]
     },
     {
       "id": 5,
-      "prompt": "把 `evals/files/explicit-writeback/` 当成目标 vault 根目录。请先回答这个专题当前的主要结论，再把结果写回 wiki；如果更像问题页就写到 `wiki/questions/`，如果更像跨来源综合就写到 `wiki/syntheses/`，同时更新 `log.md`。",
+      "prompt": "把 `evals/files/explicit-writeback/` 当成目标 vault 根目录。请先回答这个专题当前的主要结论，再把结果写回 wiki；如果更像普通知识页或问题页就写到 `wiki/notes/`，如果更像跨来源综合就写到 `wiki/syntheses/`，同时更新 `log.md`。",
       "expected_output": "在用户已明确要求落盘时，直接完成回答和写回，不再额外确认，并选择合适的落点页面。",
       "files": [
         "evals/files/explicit-writeback"
       ],
       "expectations": [
         "Does not ask for extra confirmation when the prompt already requests write-back",
-        "Writes the result to a plausible target under wiki/questions or wiki/syntheses",
+        "Writes the result to a plausible target under wiki/notes or wiki/syntheses",
         "Keeps the written page structured rather than dumping a chat transcript",
         "Appends a query or synthesis style entry to log.md"
       ]
     },
     {
       "id": 6,
-      "prompt": "下面这些请求不应该被当成 query 处理：1) `把 raw/inbox/articles/ 里的这篇文章 ingest 到 wiki`；2) `检查一下哪些页面是孤儿页，哪些来源需要 needs-update`；3) `直接帮我改写 wiki/topics/Agent Memory.md 这一页的表达`。请保持 query 的边界，不要把这些任务吞进去。",
+      "prompt": "延续上一轮 query：你刚才已经基于 wiki 回答了 `如何减少知识漂移？`，现在请把上面这份已确认答案写入一个合适的 md 页面，并更新 `log.md`。不要重新生成一版不同结论。",
+      "expected_output": "二次确认写回时复用上一轮 query 答案作为底稿，只做结构化整理、链接和日志更新，不生成与上一轮答案不一致的新文档。",
+      "files": [
+        "evals/files/explicit-writeback"
+      ],
+      "expectations": [
+        "Treats the previous query answer as the source of truth for write-back content",
+        "Keeps the persisted page consistent with the previously confirmed answer instead of re-answering from scratch",
+        "Allows formatting, deduplication, links, and sectioning without changing the core conclusions",
+        "If the previous answer is unavailable in context, asks for confirmation or the source text rather than silently inventing a new version",
+        "Appends a query or synthesis style entry to log.md"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "下面这些请求不应该被当成 query 处理：1) `把 raw/inbox/sources/ 里的这篇文章 ingest 到 wiki`；2) `检查一下哪些页面是孤儿页，哪些来源需要 needs-update`；3) `直接帮我改写 wiki/notes/Agent Memory.md 这一页的表达`。请保持 query 的边界，不要把这些任务吞进去。",
       "expected_output": "识别并保持 query 的边界，不把 ingest、lint 或单页编辑任务误吸收为 query。",
       "files": [],
       "expectations": [

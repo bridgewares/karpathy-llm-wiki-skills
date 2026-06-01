@@ -35,6 +35,8 @@ description: 对个人 LLM Wiki 做巡检、健康检查、一致性检查时，
 1. **一致性巡检**
    - 检查 `raw/library/`、`raw-index.md`、`wiki/sources/` 是否彼此对得上。
    - 关注缺失条目、状态不一致、路径不一致、来源页缺失等问题。
+   - 默认目录模型：raw 只使用 `sources`、`notes`；wiki 只使用 `sources`、`notes`、`syntheses`。
+   - 不考虑旧 taxonomy 兼容；不要把 topics/people/concepts/questions 当作当前结构的一部分。
 
 2. **结构巡检**
    - 检查孤儿页、缺失交叉引用、命名不一致、值得拆页但尚未拆页的实体。
@@ -81,8 +83,8 @@ description: 对个人 LLM Wiki 做巡检、健康检查、一致性检查时，
    - 只有当任务包含修复、补链、改状态、写回 wiki、更新 `log.md` 等写操作时，才进入修改执行分支。
 
 9. **若执行修复，记入 `log.md`**
-   - 项目规则要求每次 lint 后追加日志。
-   - 如果这次不只是审计，还做了修复或状态更新，也要记清具体动作。
+   - 纯审计不默认写日志。
+   - 如果这次做了修复、状态更新，或用户明确要求记录，也要记清具体动作。
 
 ## lint 目标结果
 
@@ -119,8 +121,10 @@ description: 对个人 LLM Wiki 做巡检、健康检查、一致性检查时，
 - `index.md`
 - `raw-index.md`
 - `log.md`
-- 相关 `wiki/sources/...`、`wiki/topics/...`、`wiki/questions/...`、`wiki/concepts/...`、`wiki/people/...`
+- 相关 `wiki/sources/...`、`wiki/notes/...`、`wiki/syntheses/...`
 - 必要时读取对应的 `raw/library/...`
+
+按 `wiki/sources/`、`wiki/notes/`、`wiki/syntheses/` 三类检查。
 
 这些读取属于正常的只读巡检，不要先停下来请求“请批准我读取这些文件”之类的额外确认。
 
@@ -143,16 +147,17 @@ description: 对个人 LLM Wiki 做巡检、健康检查、一致性检查时，
 重点检查：
 
 - 哪些页面完全没有导航入口，或几乎没有被其他页面连接
-- 哪些页面虽然在 `index.md` 里有入口，但仍然缺少来自主题页 / 问题页 / 来源页的互链，只能算“弱连接页”而不是严格孤儿页
-- 哪些页面提到概念 / 人物 / 主题但没有形成合理交叉引用
+- 哪些页面虽然在 `index.md` 里有入口，但仍然缺少来自 note 页 / synthesis 页 / 来源页的互链，只能算“弱连接页”而不是严格孤儿页
+- 哪些 `wiki/notes/...` 页面提到概念 / 人物 / 主题但没有形成合理交叉引用
 - 哪些命名明显不一致，导致页面难找或难串联
-- 哪些实体已经反复出现，值得拆成独立页面
+- 哪些实体已经反复出现，值得在 `wiki/notes/` 下拆成独立页面
 
 做这一步时要注意：
 
 - **严格区分“严格孤儿页”与“弱连接页”**。
 - 完全没有导航入口、也没有明显入链的页面，才应优先称为“孤儿页”。
 - 已出现在 `index.md` 或其他显式导航中的页面，如果问题在于缺少互链或上下文承接，更适合写成“弱连接页”“链接不足”或“导航薄弱”，不要误报成孤儿页。
+- 不要因为缺少其他分类目录而报错；当前标准结构只有 `wiki/sources/`、`wiki/notes/`、`wiki/syntheses/`。
 
 ### 5. 执行内容巡检
 
@@ -233,7 +238,8 @@ description: 对个人 LLM Wiki 做巡检、健康检查、一致性检查时，
 已更新：
 - raw-index.md
 - wiki/sources/...
-- wiki/topics/...
+- wiki/notes/...
+- wiki/syntheses/...
 - log.md
 ```
 

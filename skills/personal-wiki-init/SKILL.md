@@ -194,9 +194,9 @@ wiki/syntheses/
 - 当前阶段暂不使用单文件 metadata 代替它
 - 只有 `raw/library/` 中的来源才登记
 - raw bucket 只能是 `sources` 或 `notes`
-- 状态至少包含：`new`、`ingested`、`needs-update`
-- `needs-update` 必须带 `update_reason`
-- 所有状态时间字段使用 `YYYY-MM-DD HH:MM:SS`
+- 状态只使用：`ingested`、`needs-update`
+- `needs-update` 只能由用户明确要求或明确更新信号触发，并且必须带 `update_reason`
+- 所有状态时间字段使用 `YYYY-MM-DD HH:MM:SS`，写入前必须先读取当前本地时间
 - 可以提供按 `sources`、`notes` 分区的空白列表骨架
 
 #### `index.md` 要点
@@ -220,6 +220,7 @@ wiki/syntheses/
 - 已初始化 `raw-index.md`
 - 已初始化 `system/workflow.md` 和 `system/raw-index-rules.md`
 - 下一步建议是导入第一个真实来源并测试 ingest
+- 记录时间必须是执行初始化时读取到的本地当前时间，不能使用占位符、日期零点或估计时间
 
 ### 4. 创建或补齐 system 规则文件
 
@@ -231,6 +232,7 @@ wiki/syntheses/
 
 - 目录模型：raw 使用 `sources/notes`，wiki 使用 `sources/notes/syntheses`
 - ingest/query/lint 工作流
+- Obsidian 双链规则
 - 命名规范与时间格式
 - 页面结构规则 `Page Shapes`
 
@@ -249,8 +251,8 @@ wiki/syntheses/
 - 摘要
 - 关键观点
 - 证据 / 摘录
-- 关联 notes
-- 可能的 syntheses
+- 关联 notes，使用 `[[...]]` 双链
+- 可能的 syntheses，使用 `[[...]]` 双链
 - 待跟进问题
 
 ### Note Page
@@ -262,7 +264,7 @@ wiki/syntheses/
 - 当前理解
 - 关键来源
 - 证据
-- 相关 notes
+- 相关 notes，使用 `[[...]]` 双链
 - 不确定或冲突
 - 下一步
 
@@ -277,7 +279,7 @@ wiki/syntheses/
 - 分歧
 - 证据链
 - 缺口
-- 相关 sources / notes
+- 相关 sources / notes，使用 `[[...]]` 双链
 ```
 
 #### `system/raw-index-rules.md` 要点
@@ -286,10 +288,10 @@ wiki/syntheses/
 
 - `raw-index.md` 的职责边界
 - raw bucket 只能是 `sources` 或 `notes`
-- 状态语义：`new`、`ingested`、`needs-update`
-- `needs-update` 必须带 `update_reason`
+- 状态语义：`ingested`、`needs-update`
+- `needs-update` 只能由用户明确要求或明确更新信号触发，并且必须带 `update_reason`
 - 必填字段
-- 时间格式 `YYYY-MM-DD HH:MM:SS`
+- 时间格式 `YYYY-MM-DD HH:MM:SS`，写入前必须先读取当前本地时间
 
 ### 5. 文件不存在时的默认内容
 
@@ -327,7 +329,7 @@ wiki 下只按需使用：
 - `raw-index.md` 是唯一官方 raw ingest 状态表。
 - `system/workflow.md` 定义 ingest、query、lint 工作流和 Page Shapes。
 - `system/raw-index-rules.md` 定义 raw-index 字段、状态和时间格式。
-- 时间格式统一为 `YYYY-MM-DD HH:MM:SS`。
+- 时间格式统一为 `YYYY-MM-DD HH:MM:SS`，写入前必须先读取当前本地时间。
 - 文档主体中文优先，必要英文术语可以保留。
 
 ## 工作流
@@ -348,9 +350,9 @@ wiki 下只按需使用：
 ## 规则
 
 - raw bucket 只能是 `sources` 或 `notes`。
-- 状态至少包含 `new`、`ingested`、`needs-update`。
-- `needs-update` 必须填写 `update_reason`。
-- 时间字段使用 `YYYY-MM-DD HH:MM:SS`。
+- 状态只使用 `ingested`、`needs-update`。
+- `needs-update` 只能由用户明确要求或明确更新信号触发，并且必须填写 `update_reason`。
+- 时间字段使用 `YYYY-MM-DD HH:MM:SS`，写入前必须先读取当前本地时间。
 - 不在这里登记虚构来源。
 
 ## Sources
@@ -399,12 +401,17 @@ wiki 下只按需使用：
 
 #### `log.md`
 
-创建时写入一条使用当前本地时间的记录：
+创建时写入一条使用当前本地时间的记录。写入前必须先读取当前本地时间，格式为 `YYYY-MM-DD HH:MM:SS`。
+
+不要使用：
+
+- `YYYY-MM-DD HH:MM:SS`
+- 未经读取的估计时间
 
 ```md
 # Wiki Log
 
-## YYYY-MM-DD HH:MM:SS
+## <执行初始化时的本地当前时间>
 
 - 初始化或补齐个人 wiki 最小骨架。
 - 创建或确认 `raw/inbox/`、`raw/library/`、`wiki/`、`system/`。
@@ -424,6 +431,14 @@ wiki 下只按需使用：
 - raw 下只按需创建 `sources/`、`notes/`。
 - wiki 下只按需创建 `sources/`、`notes/`、`syntheses/`。
 - `syntheses/` 只属于 wiki，不属于 raw。
+
+## Obsidian Links
+
+- wiki 页面之间的关联必须写成 Obsidian 双链 `[[...]]`。
+- source page 指向相关 note 或 synthesis。
+- note page 指向关键 source 和相关 note。
+- synthesis page 指向相关 source 和 note。
+- 不只依赖目录位置表达关联。
 
 ## Ingest
 
@@ -454,7 +469,7 @@ wiki 下只按需使用：
 
 - 文件名使用清晰、稳定、可读的短横线命名。
 - 中文标题可以保留在页面标题中。
-- 时间格式统一为 `YYYY-MM-DD HH:MM:SS`。
+- 时间格式统一为 `YYYY-MM-DD HH:MM:SS`，写入前必须先读取当前本地时间。
 
 ## Page Shapes
 
@@ -468,8 +483,8 @@ wiki 下只按需使用：
 - 摘要
 - 关键观点
 - 证据 / 摘录
-- 关联 notes
-- 可能的 syntheses
+- 关联 notes，使用 `[[...]]` 双链
+- 可能的 syntheses，使用 `[[...]]` 双链
 - 待跟进问题
 
 ### Note Page
@@ -481,7 +496,7 @@ wiki 下只按需使用：
 - 当前理解
 - 关键来源
 - 证据
-- 相关 notes
+- 相关 notes，使用 `[[...]]` 双链
 - 不确定或冲突
 - 下一步
 
@@ -496,7 +511,7 @@ wiki 下只按需使用：
 - 分歧
 - 证据链
 - 缺口
-- 相关 sources / notes
+- 相关 sources / notes，使用 `[[...]]` 双链
 ```
 
 #### `system/raw-index-rules.md`
@@ -515,9 +530,8 @@ raw 下不使用 `syntheses`。
 
 ## Status
 
-- `new`：已进入 `raw/library/`，尚未完成 ingest。
 - `ingested`：已经纳入 wiki 知识流。
-- `needs-update`：原始资料或下游知识页需要更新，必须填写 `update_reason`。
+- `needs-update`：用户明确要求更新，或存在明确更新信号，必须填写 `update_reason`。
 
 ## Required Fields
 
@@ -531,7 +545,7 @@ raw 下不使用 `syntheses`。
 
 ## Time Format
 
-所有状态时间字段使用 `YYYY-MM-DD HH:MM:SS`。
+所有状态时间字段使用 `YYYY-MM-DD HH:MM:SS`, 写入前必须先读取当前本地时间。
 ```
 
 ### 6. 最小验证

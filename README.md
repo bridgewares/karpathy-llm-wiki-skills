@@ -49,11 +49,11 @@
 
 - 新建一个个人 wiki
 - 给已有但不完整的 vault 补齐骨架
-- 补目录、根文件、模板、system 规则文件
+- 补目录、根文件、system 规则文件
 
 核心职责：
 
-- 建立或补齐 `raw/`、`wiki/`、`templates/`、`system/`
+- 建立或补齐 `raw/`、`wiki/`、`system/`
 - 建立 `CLAUDE.md`、`raw-index.md`、`index.md`、`log.md`、`inbox.md`
 - 明确 `raw` / `wiki` 边界与 `raw-index.md` 规则
 
@@ -78,7 +78,7 @@
 - 维护 `raw-index.md`
 - 创建或更新 `wiki/sources/...` 来源页
 - 抽取结构化属性
-- 自动同步相关 `topic / concept / person / question` 页面
+- 自动同步相关 `wiki/notes/...` 页面，必要时更新 `wiki/syntheses/...`
 - 更新 `index.md` 与 `log.md`
 
 不负责：
@@ -100,7 +100,7 @@
 
 - 优先复用 `wiki/` 层，而不是默认从 raw 起步
 - 输出结论、依据、冲突与空白
-- 在高价值场景下建议写回 `wiki/questions/` 或 `wiki/syntheses/`
+- 在高价值场景下建议写回 `wiki/notes/` 或 `wiki/syntheses/`
 - 若用户明确要求落盘，则直接写回并更新 `log.md`
 
 不负责：
@@ -143,7 +143,7 @@
 
 - 新建目录结构
 - 明确规则文件
-- 准备模板
+- 准备 workflow Page Shapes
 - 建立状态追踪基础
 
 ### B. 再处理来源
@@ -186,12 +186,6 @@ raw/
   inbox/
   library/
 wiki/
-  sources/
-  topics/
-  people/
-  concepts/
-  questions/
-  syntheses/
 raw-index.md
 index.md
 log.md
@@ -201,10 +195,22 @@ CLAUDE.md
 其中：
 
 - `raw-index.md` 是来源状态表
-- `wiki/sources/` 是来源级结构化页面
-- `wiki/topics/`、`wiki/concepts/`、`wiki/people/`、`wiki/questions/`、`wiki/syntheses/` 是知识层页面
+- `wiki/` 是 LLM 维护的知识层根目录
+- `raw/inbox/` 和 `raw/library/` 只按需创建 `sources/`、`notes/`
+- `wiki/` 只按需创建 `sources/`、`notes/`、`syntheses/`
+- 主题、人物、概念、问题等细分放在页面 frontmatter、标签或正文小节中，不作为默认目录名
 
-如果你的 vault 有自定义 taxonomy，这套 skills 的合理目标应是**优先补齐、尽量保留、最小改动**，而不是强制抹平成默认分类。
+---
+
+## 目录约束
+
+这组 skills 采用固定的最小目录模型：
+
+- `init` 只建立最小可用骨架，默认保留 `raw/inbox/`、`raw/library/` 和 `wiki/` 这些稳定入口，不强制预建大量 raw 或 wiki 子目录。
+- `ingest` 可以把来源从 inbox 整理到 library，但 raw 来源正文仍是事实源，不应被改写；移动后也要保留 inbox bucket 目录，保证后续入口稳定。需要创建 source/note/synthesis 页面时，再创建对应 wiki 子目录。
+- `query` 的高价值答案可以写回 wiki；如果用户是在上一轮 query 后二次确认写回，应复用上一轮已确认答案，而不是重新生成一份可能不一致的文档。需要写回 notes/syntheses 时，再创建对应 wiki 子目录。
+
+目录分类统一收敛为 raw 的 `sources / notes` 与 wiki 的 `sources / notes / syntheses`，避免 LLM 在细分目录之间做不必要的分类判断。
 
 ---
 
@@ -224,7 +230,7 @@ CLAUDE.md
 
 ### 3. 强调“来源页是中间层”
 
-`personal-wiki-ingest` 不是只移动文件，而是先沉淀 `wiki/sources/...` 的结构化属性，再同步到 topic / concept / person / question 页面。这种设计能减少知识直接散落在多个下游页里，整体是对的。
+`personal-wiki-ingest` 不是只移动文件，而是先沉淀 `wiki/sources/...` 的结构化属性，再同步到 `wiki/notes/...` 或 `wiki/syntheses/...`。这种设计能减少知识直接散落在多个下游页里，整体是对的。
 
 ### 4. query 与 lint 的边界意识比较强
 
@@ -250,7 +256,7 @@ CLAUDE.md
 
 从你现在的 evals 看，已经覆盖了不少关键场景：
 
-- init：空目录、补齐、保留现有内容、最小骨架、自定义 taxonomy
+- init：空目录、补齐、保留现有内容、最小骨架
 - ingest：首次 ingest、re-ingest、跨页同步、批量 ingest
 - query：直接问答、跨页比较、wiki-first raw fallback、建议写回、显式写回、边界负例
 
@@ -262,25 +268,22 @@ CLAUDE.md
 
 下面这些不是方向性错误，而是会影响长期可维护性和触发稳定性的点。
 
-### 1. `init` 的默认结构略偏“全量模板化”
-
-虽然 skill 文本里提到了“优先补齐、避免重建”，但 `personal-wiki-init` 仍然有明显的“大而全默认骨架”倾向。
+### 1. `init` 应始终保持最小骨架
 
 问题：
 
-- 容易对已有 vault 施加过强结构
-- 与“最小可用”目标有时冲突
-- 如果用户已有自定义 taxonomy，skill 容易显得过度主导
+- 如果 init 创建过多目录，会诱导后续流程填充不存在的分类需求
+- 如果 init 预建 bucket 子目录，会削弱“行为触发创建”的约束
 
 建议：
 
-- 明确把“最小骨架模式”提升为一等路径，而不是 eval 才覆盖
-- 在正文中把“默认完整骨架”和“最小可用骨架”区分得更清楚
-- 减少“必须创建全部目录/模板”的绝对表述，改成“完整模式下建议创建”
+- init 只创建 `raw/inbox/`、`raw/library/`、`wiki/`、`system/`
+- raw bucket 和 wiki bucket 都由 ingest/query 首次需要时创建
+- eval 应持续检查 init 不预建 bucket 子目录
 
 ### 2. `ingest` 的职责已经接近“半自动知识建模器”
 
-现在的 `personal-wiki-ingest` 很强：不仅建 source page，还要自动更新 topic / concept / person / question 页面。
+现在的 `personal-wiki-ingest` 很强：不仅建 source page，还要自动更新 `wiki/notes/...`，必要时还会更新 `wiki/syntheses/...`。
 
 这很有价值，但也最容易失控。
 
@@ -295,14 +298,14 @@ CLAUDE.md
 - 进一步强调“默认优先更新已有页面，新建页面需要达到更高阈值”
 - 把“自动同步”分成两层：
   - 必做：来源页 + `raw-index.md` + `log.md`
-  - 条件做：topic / concept / person / question 页面更新
+  - 条件做：`wiki/notes/...` 或 `wiki/syntheses/...` 页面更新
 - 在 skill 中补一个“当来源过宽时，只抽取来源页结构化属性，不强制全部下游拆页”的显式规则
 
 ### 3. `query` 与“普通页面编辑”之间仍有轻微灰区
 
 你已经写了负边界，但还有一个实际问题：
 
-- 用户说“把这个问题当前答案整理一下并写回 question 页”时，既像 query，也像编辑
+- 用户说“把这个问题当前答案整理一下并写回 note 页”时，既像 query，也像编辑
 - 用户说“更新一下 Agent Memory 这一页，顺便补当前结论”时，也可能落在 query / edit 中间
 
 建议：
@@ -372,7 +375,7 @@ CLAUDE.md
 例如：
 
 - **保守 ingest**：只做来源入库、source page、raw-index、log
-- **扩展 ingest**：再做下游 topic / concept / person / question 同步
+- **扩展 ingest**：再做下游 `wiki/notes/...` 或 `wiki/syntheses/...` 同步
 
 这样能更适合不同用户偏好，也便于后续 eval 分层。
 
@@ -466,7 +469,7 @@ README.md
 ### 来源入库
 
 - “把这篇文章 ingest 到 wiki”
-- “处理 raw/inbox 里的几个 webclips”
+- “处理 raw/inbox/sources 里的几个 webclip 文件”
 - “这个来源原文更新了，重新 ingest”
 
 → 使用 `personal-wiki-ingest`
