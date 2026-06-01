@@ -22,7 +22,9 @@
    - `raw/library/` 是正式原始资料库
 
 3. **`raw-index.md` 统一追踪来源状态**
-   - 用于登记来源是否已入库、已 ingest、是否需要更新
+   - 只登记 `raw/library/` 中的资料
+   - 状态只使用 `ingested`、`needs-update`
+   - `raw/inbox/` 中的待处理文件不登记到状态表
 
 4. **围绕工作流拆 skill，而不是围绕文件类型拆 skill**
    - init / ingest / query / lint 分别对应不同意图
@@ -54,7 +56,7 @@
 核心职责：
 
 - 建立或补齐 `raw/`、`wiki/`、`system/`
-- 建立 `CLAUDE.md`、`raw-index.md`、`index.md`、`log.md`、`inbox.md`
+- 建立 `CLAUDE.md`、`raw-index.md`、`index.md`、`log.md`
 - 明确 `raw` / `wiki` 边界与 `raw-index.md` 规则
 
 不负责：
@@ -77,8 +79,9 @@
 - 整理到 `raw/library/`
 - 维护 `raw-index.md`
 - 创建或更新 `wiki/sources/...` 来源页
-- 抽取结构化属性
-- 自动同步相关 `wiki/knowledge/...` 页面，必要时更新 `wiki/syntheses/...`
+- 将本次来源与已有 wiki 放在一起分析
+- 主动抽取方法论、概念、问题、决策原则或操作经验
+- 创建或更新必要的 `wiki/knowledge/...` 页面，并给出或更新 `wiki/syntheses/...` 关联
 - 更新 `index.md` 与 `log.md`
 
 不负责：
@@ -207,7 +210,7 @@ CLAUDE.md
 这组 skills 采用固定的最小目录模型：
 
 - `init` 只建立最小可用骨架，默认保留 `raw/inbox/`、`raw/library/` 和 `wiki/` 这些稳定入口，不强制预建大量 raw 或 wiki 子目录。
-- `ingest` 可以把来源从 inbox 整理到 library，但 raw 来源正文仍是事实源，不应被改写；移动后也要保留 inbox bucket 目录，保证后续入口稳定。需要创建 source/note/synthesis 页面时，再创建对应 wiki 子目录。
+- `ingest` 可以把来源从 inbox 整理到 library，但 raw 来源正文仍是事实源，不应被改写；移动后也要保留 inbox bucket 目录，保证后续入口稳定。需要创建 source/knowledge/synthesis 页面时，再创建对应 wiki 子目录。
 - `query` 的高价值答案可以写回 wiki；如果用户是在上一轮 query 后二次确认写回，应复用上一轮已确认答案，而不是重新生成一份可能不一致的文档。需要写回 knowledge/syntheses 时，再创建对应 wiki 子目录。
 
 目录分类统一收敛为 raw 的 `sources / notes` 与 wiki 的 `sources / knowledge / syntheses`，避免 LLM 在细分目录之间做不必要的分类判断。
@@ -304,17 +307,16 @@ CLAUDE.md
 
 建议：
 
-- 进一步强调“默认优先更新已有页面，新建页面需要达到更高阈值”
-- 把“自动同步”分成两层：
-  - 必做：来源页 + `raw-index.md` + `log.md`
-  - 条件做：`wiki/knowledge/...` 或 `wiki/syntheses/...` 页面更新
-- 在 skill 中补一个“当来源过宽时，只抽取来源页结构化属性，不强制全部下游拆页”的显式规则
+- 始终把本次来源与已有 `wiki/sources/`、`wiki/knowledge/`、`wiki/syntheses/` 放在同一个分析集合里处理
+- 默认优先更新已有页面，新建 knowledge page 需要达到稳定、可复用的阈值
+- synthesis 不强制每次新建，但必须检查历史材料并在 source page 中给出候选关联或说明
+- 当来源过宽时，可以减少新建页面数量，但不能跳过 knowledge / synthesis 候选判断
 
 ### 3. `query` 与“普通页面编辑”之间仍有轻微灰区
 
 你已经写了负边界，但还有一个实际问题：
 
-- 用户说“把这个问题当前答案整理一下并写回 note 页”时，既像 query，也像编辑
+- 用户说“把这个问题当前答案整理一下并写回 knowledge 页”时，既像 query，也像编辑
 - 用户说“更新一下 Agent Memory 这一页，顺便补当前结论”时，也可能落在 query / edit 中间
 
 建议：
@@ -379,14 +381,14 @@ CLAUDE.md
 - 新增一个 `personal-wiki-edit-page`
 - 或在 README 中明确：单页表达改写不属于这四个主 skill，交给通用编辑流程
 
-### 建议 2：给 `ingest` 增加“保守模式”定义
+### 建议 2：给 `ingest` 增加“同步强度”定义
 
 例如：
 
-- **保守 ingest**：只做来源入库、source page、raw-index、log
-- **扩展 ingest**：再做下游 `wiki/knowledge/...` 或 `wiki/syntheses/...` 同步
+- **最小同步**：来源入库、raw-index、source page、log，并完成 knowledge / synthesis 候选判断
+- **完整同步**：在最小同步基础上，更新或创建达到阈值的 `wiki/knowledge/...`，必要时更新 `wiki/syntheses/...`
 
-这样能更适合不同用户偏好，也便于后续 eval 分层。
+这样能控制单次改动面，但不削弱 ingest 必须主动建立知识链的原则。
 
 ### 建议 3：给 `query` 增加“答案级别”概念
 
@@ -461,7 +463,7 @@ README.md
    - 决定是新增 skill，还是明确交给通用编辑流
 
 4. **最后再细化 ingest / query 的模式分层**
-   - 保守 / 扩展 ingest
+   - 最小同步 / 完整同步 ingest
    - 快速 / 核对 / 写回答案 query
 
 ---
