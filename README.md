@@ -78,7 +78,7 @@
 - 维护 `raw-index.md`
 - 创建或更新 `wiki/sources/...` 来源页
 - 抽取结构化属性
-- 自动同步相关 `wiki/notes/...` 页面，必要时更新 `wiki/syntheses/...`
+- 自动同步相关 `wiki/knowledge/...` 页面，必要时更新 `wiki/syntheses/...`
 - 更新 `index.md` 与 `log.md`
 
 不负责：
@@ -100,7 +100,7 @@
 
 - 优先复用 `wiki/` 层，而不是默认从 raw 起步
 - 输出结论、依据、冲突与空白
-- 在高价值场景下建议写回 `wiki/notes/` 或 `wiki/syntheses/`
+- 在高价值场景下建议写回 `wiki/knowledge/` 或 `wiki/syntheses/`
 - 若用户明确要求落盘，则直接写回并更新 `log.md`
 
 不负责：
@@ -197,7 +197,7 @@ CLAUDE.md
 - `raw-index.md` 是来源状态表
 - `wiki/` 是 LLM 维护的知识层根目录
 - `raw/inbox/` 和 `raw/library/` 只按需创建 `sources/`、`notes/`
-- `wiki/` 只按需创建 `sources/`、`notes/`、`syntheses/`
+- `wiki/` 只按需创建 `sources/`、`knowledge/`、`syntheses/`
 - 主题、人物、概念、问题等细分放在页面 frontmatter、标签或正文小节中，不作为默认目录名
 
 ---
@@ -208,9 +208,18 @@ CLAUDE.md
 
 - `init` 只建立最小可用骨架，默认保留 `raw/inbox/`、`raw/library/` 和 `wiki/` 这些稳定入口，不强制预建大量 raw 或 wiki 子目录。
 - `ingest` 可以把来源从 inbox 整理到 library，但 raw 来源正文仍是事实源，不应被改写；移动后也要保留 inbox bucket 目录，保证后续入口稳定。需要创建 source/note/synthesis 页面时，再创建对应 wiki 子目录。
-- `query` 的高价值答案可以写回 wiki；如果用户是在上一轮 query 后二次确认写回，应复用上一轮已确认答案，而不是重新生成一份可能不一致的文档。需要写回 notes/syntheses 时，再创建对应 wiki 子目录。
+- `query` 的高价值答案可以写回 wiki；如果用户是在上一轮 query 后二次确认写回，应复用上一轮已确认答案，而不是重新生成一份可能不一致的文档。需要写回 knowledge/syntheses 时，再创建对应 wiki 子目录。
 
-目录分类统一收敛为 raw 的 `sources / notes` 与 wiki 的 `sources / notes / syntheses`，避免 LLM 在细分目录之间做不必要的分类判断。
+目录分类统一收敛为 raw 的 `sources / notes` 与 wiki 的 `sources / knowledge / syntheses`，避免 LLM 在细分目录之间做不必要的分类判断。
+
+目录职责：
+
+- `raw/inbox/sources/`：待处理外部来源原文。
+- `raw/library/sources/`：已纳入正式知识流的外部来源原文。
+- `raw/inbox/notes/`、`raw/library/notes/`：用户原始笔记、摘录、临时记录，仍属于 raw 事实源。
+- `wiki/sources/`：来源页，回答“这个来源说了什么”。
+- `wiki/knowledge/`：结构化知识页，承载方法论、概念、问题、决策原则或操作经验。
+- `wiki/syntheses/`：综合页，承载跨来源、跨知识页的比较、共识、分歧和阶段性结论。
 
 ---
 
@@ -230,7 +239,7 @@ CLAUDE.md
 
 ### 3. 强调“来源页是中间层”
 
-`personal-wiki-ingest` 不是只移动文件，而是先沉淀 `wiki/sources/...` 的结构化属性，再同步到 `wiki/notes/...` 或 `wiki/syntheses/...`。这种设计能减少知识直接散落在多个下游页里，整体是对的。
+`personal-wiki-ingest` 不是只移动文件，而是先沉淀 `wiki/sources/...` 的结构化属性，再同步到 `wiki/knowledge/...` 或 `wiki/syntheses/...`。这种设计能减少知识直接散落在多个下游页里，整体是对的。
 
 ### 4. query 与 lint 的边界意识比较强
 
@@ -283,7 +292,7 @@ CLAUDE.md
 
 ### 2. `ingest` 的职责已经接近“半自动知识建模器”
 
-现在的 `personal-wiki-ingest` 很强：不仅建 source page，还要自动更新 `wiki/notes/...`，必要时还会更新 `wiki/syntheses/...`。
+现在的 `personal-wiki-ingest` 很强：不仅建 source page，还要自动更新 `wiki/knowledge/...`，必要时还会更新 `wiki/syntheses/...`。
 
 这很有价值，但也最容易失控。
 
@@ -298,7 +307,7 @@ CLAUDE.md
 - 进一步强调“默认优先更新已有页面，新建页面需要达到更高阈值”
 - 把“自动同步”分成两层：
   - 必做：来源页 + `raw-index.md` + `log.md`
-  - 条件做：`wiki/notes/...` 或 `wiki/syntheses/...` 页面更新
+  - 条件做：`wiki/knowledge/...` 或 `wiki/syntheses/...` 页面更新
 - 在 skill 中补一个“当来源过宽时，只抽取来源页结构化属性，不强制全部下游拆页”的显式规则
 
 ### 3. `query` 与“普通页面编辑”之间仍有轻微灰区
@@ -375,7 +384,7 @@ CLAUDE.md
 例如：
 
 - **保守 ingest**：只做来源入库、source page、raw-index、log
-- **扩展 ingest**：再做下游 `wiki/notes/...` 或 `wiki/syntheses/...` 同步
+- **扩展 ingest**：再做下游 `wiki/knowledge/...` 或 `wiki/syntheses/...` 同步
 
 这样能更适合不同用户偏好，也便于后续 eval 分层。
 
