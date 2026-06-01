@@ -3,22 +3,27 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "把 `evals/files/fresh-init-empty-vault/` 当成目标 vault 根目录，帮我在这个空目录里初始化一个个人 LLM wiki，按我们之前定的规范来：要有 raw/inbox 和 raw/library，两层都按文章、视频、书、播客、webclips、pdfs、images 分类；还要有 root CLAUDE.md、raw-index.md、index.md、log.md、inbox.md，以及 templates 和 system 规则文件。先不要导入任何真实资料。",
+      "prompt": "把 `evals/files/fresh-init-empty-vault/` 当成目标 vault 根目录，帮我在这个空目录里初始化一个个人 LLM wiki，按 llm-wiki 的思想先搭最小可用骨架：要有 raw/inbox、raw/library 和 wiki 三个稳定入口、root CLAUDE.md、raw-index.md、index.md、log.md、inbox.md，以及 system/workflow.md 和 system/raw-index-rules.md。workflow.md 必须包含 Page Shapes。先不要导入任何真实资料，不要生成 templates 目录，也不要一次性铺满文章、视频、书、播客等 raw 分类目录或 topics/people/concepts/questions 等 wiki 子目录。后续 raw 只按需使用 sources、notes，wiki 只按需使用 sources、notes、syntheses。",
       "expected_output": "在给定空目录中完成全新初始化，并在真实文件系统中创建完整骨架。",
       "files": [
         "evals/files/fresh-init-empty-vault"
       ],
       "expectations": [
         "Creates root CLAUDE.md in evals/files/fresh-init-empty-vault/ rather than only a system-level rules file",
-        "Creates raw/inbox and raw/library with typed subdirectories including pdfs and images under the target vault",
+        "Creates raw/inbox and raw/library as stable intake/library directories under the target vault",
+        "Does not create a large set of empty typed raw subdirectories",
+        "Creates wiki/ as the knowledge-layer root but does not precreate empty wiki bucket subdirectories",
+        "Documents sources and notes as the only default on-demand bucket names for raw subdirectories",
+        "Documents sources, notes, and syntheses as the only default on-demand bucket names for wiki subdirectories",
         "Creates raw-index.md in the target vault and describes it as the sole official ingest status registry",
         "Does not create invented source entries inside raw-index.md or perform ingest work",
-        "Creates template files and system support files inside the target vault"
+        "Creates system/workflow.md with Page Shapes and system/raw-index-rules.md",
+        "Does not create templates/ or standalone template files"
       ]
     },
     {
       "id": 2,
-      "prompt": "把 `evals/files/supplement-partial-vault/` 当成目标 vault 根目录。这个 Obsidian vault 已经有一些东西了：我已经建了 raw/、wiki/、templates/，但结构不完整，也没有 raw-index.md。请你不要重写我已有的内容，尽量保留，只补齐成我们约定的个人 wiki 结构，并指出发现的旧结构问题。",
+      "prompt": "把 `evals/files/supplement-partial-vault/` 当成目标 vault 根目录。这个 Obsidian vault 已经有一些东西了：我已经建了 raw/、wiki/，但结构不完整，也没有 raw-index.md。请你不要重写我已有的内容，尽量保留，只补齐成我们约定的个人 wiki 结构，并指出发现的结构问题。",
       "expected_output": "识别为缺失补齐场景，保留已有内容，并在真实文件系统中补齐缺失结构。",
       "files": [
         "evals/files/supplement-partial-vault"
@@ -33,7 +38,7 @@
     },
     {
       "id": 3,
-      "prompt": "把 `evals/files/rule-heavy-chinese-init/` 当成目标 vault 根目录。基于 llm-wiki 的思路，先帮我把个人知识库的目录、模板和规则文件搭好，但我要中文优先，而且要把 raw 状态跟踪规则定死：raw-index.md 是唯一官方状态表，needs-update 必须带 update_reason，所有状态时间字段精确到秒。",
+      "prompt": "把 `evals/files/rule-heavy-chinese-init/` 当成目标 vault 根目录。基于 llm-wiki 的思路，先帮我把个人知识库的目录和规则文件搭好，但我要中文优先，而且要把 raw 状态跟踪规则定死：raw-index.md 是唯一官方状态表，needs-update 必须带 update_reason，所有状态时间字段精确到秒，system/workflow.md 必须包含 Page Shapes。",
       "expected_output": "在给定目录中创建中文优先的初始化产物，并把 raw-index 规则落实到文件内容里。",
       "files": [
         "evals/files/rule-heavy-chinese-init"
@@ -48,16 +53,16 @@
     },
     {
       "id": 4,
-      "prompt": "把 `evals/files/custom-taxonomy-existing-vault/` 当成目标 vault 根目录。这个个人知识库已经有自己的一套 raw 分类，比如 `raw/inbox/interviews/` 和 `raw/library/interviews/`，也已经有一些说明文件。请按 llm-wiki 思路把缺失骨架补齐，但不要为了迎合默认模板而重写我已有的分类结构。",
-      "expected_output": "识别为缺失补齐场景，补齐基础骨架与规则文件，同时保留已有自定义 taxonomy，不强行改造成默认分类。",
+      "prompt": "把 `evals/files/custom-taxonomy-existing-vault/` 当成目标 vault 根目录。这个个人知识库已经有一些说明文件，但还没有当前约定的最小骨架。请按 raw 两类、wiki 三类的规则把缺失骨架补齐，并确保 system/workflow.md 包含 Page Shapes。",
+      "expected_output": "识别为缺失补齐场景，补齐基础骨架与规则文件，并明确当前目录模型。",
       "files": [
         "evals/files/custom-taxonomy-existing-vault"
       ],
       "expectations": [
-        "Keeps the existing custom raw taxonomy instead of deleting or renaming it to the default set",
+        "Documents the current raw buckets as sources and notes",
         "Supplements missing root files such as raw-index.md, index.md, log.md, or inbox.md as needed",
-        "Preserves existing explanatory files and folder names when they are still compatible with the wiki model",
-        "Describes the raw/wiki boundary without forcing a full rewrite of the user's category scheme",
+        "Preserves existing explanatory files when they are still compatible with the wiki model",
+        "Describes the raw/wiki boundary and Page Shapes",
         "Keeps the work scoped to initialization and supplementation"
       ]
     },
@@ -71,36 +76,36 @@
       "expectations": [
         "Keeps the existing CLAUDE.md rather than replacing it wholesale",
         "Adds or merges missing wiki-specific rules only when needed",
-        "Creates the missing raw/wiki/template/system structure in the target vault",
+        "Creates the missing raw/wiki/system structure in the target vault",
         "Creates raw-index.md if missing and defines it as the official raw ingest status table",
         "Avoids unnecessary rewrites to unrelated user-authored rule content"
       ]
     },
     {
       "id": 6,
-      "prompt": "把 `evals/files/nonempty-template-system-vault/` 当成目标 vault 根目录。这里已经有 `templates/` 和 `system/`，里面有一些我正在使用的模板和规则文件，但整个 wiki 结构还不完整。请补齐缺失内容，不要覆盖我已有的模板和规则，除非它们明显缺少关键 wiki 约束。",
-      "expected_output": "保留已有模板和 system 文件，进行最小补齐而非统一重写。",
+      "prompt": "把 `evals/files/nonempty-template-system-vault/` 当成目标 vault 根目录。这里已经有 `system/`，里面有一些我正在使用的规则文件，但整个 wiki 结构还不完整。请补齐缺失内容，不要覆盖我已有的规则，除非它们明显缺少关键 wiki 约束。",
+      "expected_output": "保留已有 system 文件，进行最小补齐而非统一重写。",
       "files": [
         "evals/files/nonempty-template-system-vault"
       ],
       "expectations": [
-        "Keeps existing files in templates/ and system/ when they already contain meaningful content",
-        "Adds only the missing template or system files required for a minimal wiki skeleton",
-        "Does not overwrite user-authored template text unnecessarily",
+        "Keeps existing files in system/ when they already contain meaningful content",
+        "Adds only the missing system files required for a minimal wiki skeleton",
+        "Does not overwrite user-authored workflow text unnecessarily",
         "Still creates missing root files and directory layers needed by the wiki",
         "Shows supplementation behavior rather than full regeneration"
       ]
     },
     {
       "id": 7,
-      "prompt": "把 `evals/files/minimal-skeleton-request/` 当成目标 vault 根目录。请先帮我搭一个最小可用的个人 LLM wiki 骨架：需要明确 raw 和 wiki 的边界、建立核心根文件，并能支持后续 ingest；但先不要一次性铺满太多分类目录或模板。",
+      "prompt": "把 `evals/files/minimal-skeleton-request/` 当成目标 vault 根目录。请先帮我搭一个最小可用的个人 LLM wiki 骨架：需要明确 raw 和 wiki 的边界、建立核心根文件，并能支持后续 ingest；但先不要一次性铺满太多分类目录或模板文件。",
       "expected_output": "按最小可用原则完成初始化，而不是强制展开完整的大而全默认结构。",
       "files": [
         "evals/files/minimal-skeleton-request"
       ],
       "expectations": [
         "Creates a usable minimal wiki skeleton with raw/wiki separation and core root files",
-        "Avoids expanding into unnecessary category folders or excessive template files when the prompt asks for minimal setup",
+        "Avoids expanding into unnecessary category folders or standalone template files when the prompt asks for minimal setup",
         "Still defines raw-index.md as the official raw ingest status table if created",
         "Keeps the result compatible with later ingest work",
         "Demonstrates that the skill can honor a minimal-scope initialization request"
