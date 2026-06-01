@@ -89,6 +89,8 @@ ingest 的关键动作是：把本次明确 ingest 的来源与 vault 中已有 
 3. **批量 ingest**
    - 用户要求处理多个文件或一个目录
    - 应逐个来源处理
+   - 如果目标是 `raw/inbox/<bucket>/` 目录，批量对象是目录内的文件，不是 bucket 目录本身
+   - 不要移动、删除或重建 `raw/inbox/<bucket>/` 目录节点
    - 每个来源都要有独立 raw-index 状态、source page、必要 knowledge pages、关联建议与日志记录
 
 ## 核心原则
@@ -122,6 +124,8 @@ ingest 的关键动作是：把本次明确 ingest 的来源与 vault 中已有 
    - 从 `raw/inbox/<bucket>/` 移动文件到 `raw/library/<bucket>/` 后，必须保留 `raw/inbox/<bucket>/`。
    - 即使 `raw/inbox/<bucket>/` 暂时为空，也不要删除。
    - 不删除 `raw/inbox/`、`raw/library/` 或任何用户已有目录。
+   - 批量 ingest 时，只能移动或移除已处理的文件，不能把 `raw/inbox/<bucket>/` 目录整体移动到 library。
+   - 不使用会清理空目录的批量删除、目录移动或递归清理动作。
    - `sources` 和 `notes` 都使用同一条规则：完成 ingest 后，已入库文件不应继续留在 `raw/inbox/<bucket>/` 中。
    - 如果 `raw/library/<bucket>/` 已经存在同名且内容相同的文件，应把 `raw/inbox/<bucket>/` 中的重复文件视为已入库副本并移除；目录本身仍保留。
    - 如果同名文件内容不同，不要覆盖或删除，先报告冲突并让用户决定保留哪个版本。
@@ -233,6 +237,13 @@ source page 不是 ingest 的终点。执行流程必须完成“来源入库 ->
 3. 保留 `raw/inbox/<bucket>/` 目录。
 4. 不删除空目录。
 5. 不改写 raw 正文。
+
+如果用户要求批量处理 `raw/inbox/<bucket>/` 目录：
+
+1. 先枚举目录内的文件，把每个文件作为独立来源处理。
+2. 只移动文件到 `raw/library/<bucket>/`，不要移动 `raw/inbox/<bucket>/` 目录本身。
+3. 文件全部处理完后，确认 `raw/inbox/<bucket>/` 仍存在；如果不存在，必须立即重建空目录并在汇报中说明修复。
+4. 不执行“清理空目录”“删除空 bucket”“递归删除 inbox”之类的收尾动作。
 
 如果目标 `raw/library/<bucket>/` 已存在同名文件：
 
@@ -470,6 +481,7 @@ frontmatter 至少包含 `page_type: synthesis`、`tags`、`created_at`、`updat
 
 - 来源是否位于 `raw/library/<bucket>/`
 - 原 `raw/inbox/<bucket>/` 目录是否仍存在
+- 批量 ingest 时，是否只移动了文件而没有移动 bucket 目录本身
 - 已入库的 inbox 文件是否已移动走，或在 library 已有同内容副本时已移除重复 inbox 文件
 - `raw-index.md` 是否有条目
 - `status` 与 `last_status_at` 是否更新
@@ -534,6 +546,8 @@ frontmatter 至少包含 `page_type: synthesis`、`tags`、`created_at`、`updat
 - 不要跳过 `raw-index.md`
 - 不要登记仍停留在 `raw/inbox/` 的临时文件
 - 不要删除 `raw/inbox/` 或 `raw/inbox/<bucket>/`
+- 不要在批量 ingest 时移动 `raw/inbox/<bucket>/` 目录本身
+- 不要执行空目录清理或递归目录删除作为 ingest 收尾
 - 不要在 raw 下创建 `syntheses/`
 - 不要创建 `articles/`、`videos/`、`books/`、`webclips/` 等 raw 类型目录
 - 不要创建 `topics/`、`people/`、`concepts/`、`questions/` 等 wiki 目录
