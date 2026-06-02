@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "把 `evals/files/fresh-init-empty-vault/` 当成目标 vault 根目录，帮我在这个空目录里初始化一个个人 LLM wiki，按 llm-wiki 的思想先搭最小可用骨架：要有 raw/inbox、raw/library 和 wiki 三个稳定入口、root CLAUDE.md、raw-index.md、index.md、log.md、inbox.md，以及 system/workflow.md 和 system/raw-index-rules.md。workflow.md 必须包含 Page Shapes。先不要导入任何真实资料，不要生成 templates 目录，也不要一次性铺满文章、视频、书、播客等 raw 分类目录或 topics/people/concepts/questions 等 wiki 子目录。后续 raw 只按需使用 sources、notes，wiki 只按需使用 sources、notes、syntheses。",
+      "prompt": "把 `evals/files/fresh-init-empty-vault/` 当成目标 vault 根目录，帮我在这个空目录里初始化一个个人 LLM wiki，按 llm-wiki 的思想先搭最小可用骨架：要有 raw/inbox、raw/library 和 wiki 三个稳定入口、root CLAUDE.md、raw-index.md、index.md、log.md，以及 system/workflow.md 和 system/raw-index-rules.md。workflow.md 必须包含 Page Shapes。先不要导入任何真实资料，不要生成 templates 目录，也不要一次性铺满文章、视频、书、播客等 raw 分类目录或 topics/people/concepts/questions 等 wiki 子目录。后续 raw 只按需使用 sources、notes，wiki 只按需使用 sources、knowledge、syntheses。",
       "expected_output": "在给定空目录中完成全新初始化，并在真实文件系统中创建完整骨架。",
       "files": [
         "evals/files/fresh-init-empty-vault"
@@ -14,7 +14,7 @@
         "Does not create a large set of empty typed raw subdirectories",
         "Creates wiki/ as the knowledge-layer root but does not precreate empty wiki bucket subdirectories",
         "Documents sources and notes as the only default on-demand bucket names for raw subdirectories",
-        "Documents sources, notes, and syntheses as the only default on-demand bucket names for wiki subdirectories",
+        "Documents sources, knowledge, and syntheses as the only default on-demand bucket names for wiki subdirectories",
         "Creates raw-index.md in the target vault and describes it as the sole official ingest status registry",
         "Does not create invented source entries inside raw-index.md or perform ingest work",
         "Creates system/workflow.md with Page Shapes and system/raw-index-rules.md",
@@ -60,7 +60,7 @@
       ],
       "expectations": [
         "Documents the current raw buckets as sources and notes",
-        "Supplements missing root files such as raw-index.md, index.md, log.md, or inbox.md as needed",
+        "Supplements missing root files such as raw-index.md, index.md, or log.md as needed",
         "Preserves existing explanatory files when they are still compatible with the wiki model",
         "Describes the raw/wiki boundary and Page Shapes",
         "Keeps the work scoped to initialization and supplementation"

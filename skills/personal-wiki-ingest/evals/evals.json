@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "把 `evals/files/first-ingest-article/` 当成目标 vault 根目录。请把 `raw/inbox/sources/agents-and-memory.md` 这个新来源做第一次 ingest：整理到 `raw/library/sources/`，在 `raw-index.md` 建立条目，创建对应 `wiki/sources/...` 来源页，并更新相关 note 或 synthesis 页面、`index.md` 和 `log.md`。",
+      "prompt": "把 `evals/files/first-ingest-article/` 当成目标 vault 根目录。请把 `raw/inbox/sources/agents-and-memory.md` 这个新来源做第一次 ingest：整理到 `raw/library/sources/`，在 `raw-index.md` 建立条目，创建对应 `wiki/sources/...` 来源页，并更新相关 knowledge 或 synthesis 页面、`index.md` 和 `log.md`。",
       "expected_output": "完成一次新文章的首次 ingest，不仅在真实文件系统中生成 raw/library、raw-index、source page 和相关页面更新，还会在来源页写入结构化提取结果。",
       "files": [
         "evals/files/first-ingest-article"
@@ -20,14 +20,14 @@
     },
     {
       "id": 2,
-      "prompt": "把 `evals/files/reingest-source-changed/` 当成目标 vault 根目录。`raw/library/sources/agents-and-memory.md` 已更新，且 `raw-index.md` 里已经标了 `needs-update` + `source-changed`。请重新 ingest 这个来源，更新来源页、相关 note 或 synthesis 页面、`raw-index.md`、`index.md` 和 `log.md`。",
+      "prompt": "把 `evals/files/reingest-source-changed/` 当成目标 vault 根目录。`raw/library/sources/agents-and-memory.md` 已更新，且 `raw-index.md` 里已经标了 `needs-update` + `source-changed`。请重新 ingest 这个来源，更新来源页、相关 knowledge 或 synthesis 页面、`raw-index.md`、`index.md` 和 `log.md`。",
       "expected_output": "完成一次 source-changed 驱动的重新 ingest，并把状态和来源页内容同步到最新。",
       "files": [
         "evals/files/reingest-source-changed"
       ],
       "expectations": [
         "Updates the existing source page to reflect the changed raw content",
-        "Updates raw-index.md to reflect successful re-ingest with an updated last_ingested_at",
+        "Updates raw-index.md to reflect successful re-ingest with an updated last_status_at",
         "Preserves source identity rather than creating a duplicate source page",
         "Appends a re-ingest style entry to log.md",
         "Updates at least one related page or index entry after re-ingest"
@@ -35,7 +35,7 @@
     },
     {
       "id": 3,
-      "prompt": "把 `evals/files/crosspage-sync/` 当成目标 vault 根目录。请 ingest `raw/inbox/sources/agent-memory-webclip.md`，并默认自动同步相关 `wiki/notes/...` 页面，必要时更新 `wiki/syntheses/...`，而不是只停在 source page。",
+      "prompt": "把 `evals/files/crosspage-sync/` 当成目标 vault 根目录。请 ingest `raw/inbox/sources/agent-memory-webclip.md`，并默认自动同步相关 `wiki/knowledge/...` 页面，必要时更新 `wiki/syntheses/...`，而不是只停在 source page。",
       "expected_output": "完成一次 webclip ingest，并在真实文件系统里体现跨页同步，同时在来源页保留可复用的结构化属性，而不是只创建来源页。",
       "files": [
         "evals/files/crosspage-sync"
@@ -43,8 +43,8 @@
       "expectations": [
         "Creates a source page for the ingested webclip",
         "Writes extracted questions, concepts, topics, or evidence into the source page rather than only linking outward",
-        "Updates an existing wiki/notes page in the target vault",
-        "Creates or updates at least one wiki/notes page when the source supports it",
+        "Updates an existing wiki/knowledge page in the target vault",
+        "Creates or updates at least one wiki/knowledge page when the source supports it",
         "Registers the source in raw-index.md and updates log.md",
         "Demonstrates cross-page sync rather than source-page-only ingest"
       ]

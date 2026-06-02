@@ -10,7 +10,7 @@
       ],
       "expectations": [
         "Checks consistency across raw/library, raw-index.md, and wiki/sources rather than treating the task as source ingest",
-        "Identifies a concrete mapping mismatch by naming raw-index.md together with a missing or broken source_page / 来源页 reference",
+        "Identifies a concrete mapping mismatch by naming raw-index.md together with a missing or broken wiki_page / 来源页 reference",
         "Produces a structured audit with consistency findings and suggested actions",
         "Explicitly keeps the response in audit mode by saying it will not ingest, move raw files, or create missing source pages inline"
       ]
@@ -25,7 +25,7 @@
       "expectations": [
         "Distinguishes strict orphan pages from merely weakly connected pages using both labels and applying them to different files",
         "Explicitly says wiki/sources/orphan-source.md is not a strict orphan because index.md already links to it",
-        "Calls out the missing crosslinks from wiki/notes/Agent Memory.md to related note pages such as 如何减少知识漂移？ or Prompt Caching",
+        "Calls out the missing crosslinks from wiki/knowledge/Agent Memory.md to related knowledge pages such as 如何减少知识漂移？ or Prompt Caching",
         "Provides concrete maintenance suggestions while staying in audit mode rather than query, ingest, or full-page rewriting"
       ]
     },
@@ -39,7 +39,7 @@
       "expectations": [
         "Identifies at least one stale source or page by naming agent-drift-webclip or Agent Memory.md directly",
         "Flags a specific raw-index.md entry that should likely switch to needs-update",
-        "Explains the stale or needs-update judgment with a timestamp-based evidence chain that mentions both raw_updated_at and last_ingested_at",
+        "Explains the stale or needs-update judgment with a timestamp-based evidence chain that mentions both raw_updated_at and last_status_at",
         "Keeps the task scoped to lint by recommending re-ingest only as a follow-up rather than performing it inline"
       ]
     },
@@ -73,7 +73,7 @@
     },
     {
       "id": 6,
-      "prompt": "把 `evals/files/negative-boundaries/` 当成目标 vault 根目录。下面这些请求不要都被当成 lint：1) `把 raw/inbox/sources/ 里的这篇新文章 ingest 到 wiki`；2) `这个 wiki 里现在怎么回答如何减少知识漂移？`；3) `直接帮我改写 wiki/notes/Agent Memory.md 这一页的表达`；4) `顺便检查一下 orphan source 和缺失交叉引用`。请保持 lint 的边界，只把真正属于巡检的部分纳入。",
+      "prompt": "把 `evals/files/negative-boundaries/` 当成目标 vault 根目录。下面这些请求不要都被当成 lint：1) `把 raw/inbox/sources/ 里的这篇新文章 ingest 到 wiki`；2) `这个 wiki 里现在怎么回答如何减少知识漂移？`；3) `直接帮我改写 wiki/knowledge/Agent Memory.md 这一页的表达`；4) `顺便检查一下 orphan source 和缺失交叉引用`。请保持 lint 的边界，只把真正属于巡检的部分纳入。",
       "expected_output": "识别 lint 与 ingest、query、单页改写的边界，只保留巡检相关部分。",
       "files": [
         "evals/files/negative-boundaries"
