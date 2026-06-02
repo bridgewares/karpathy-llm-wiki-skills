@@ -14,7 +14,8 @@
         "Creates a raw-index entry for the source with a valid status and timestamps",
         "Creates wiki/sources/agents-and-memory.md in the target vault without a typed articles subdirectory",
         "Writes structured source attributes such as tags, summary, key points, entities, questions, or evidence into the source page",
-        "Updates at least one related knowledge page or index/log file",
+        "Treats the unspecified request as normal ingest",
+        "Updates at least one related knowledge page or records a concrete knowledge candidate when evidence is thin",
         "Keeps the task scoped to ingest rather than initialization"
       ]
     },
@@ -45,6 +46,7 @@
         "Writes extracted questions, concepts, topics, or evidence into the source page rather than only linking outward",
         "Updates an existing wiki/knowledge page in the target vault",
         "Creates or updates at least one wiki/knowledge page when the source supports it",
+        "Does not create a new synthesis page unless the source changes an existing synthesis or the user explicitly requests deep synthesis",
         "Registers the source in raw-index.md and updates log.md",
         "Demonstrates cross-page sync rather than source-page-only ingest"
       ]
@@ -64,6 +66,36 @@
         "Creates more than one source page or otherwise shows multi-source ingest output",
         "Writes structured attributes to source pages for multiple ingested sources, not just file moves and links",
         "Demonstrates batch ingest behavior rather than single-file-only ingest"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "把 `evals/files/first-ingest-article/` 当成目标 vault 根目录。请对 `raw/inbox/sources/agents-and-memory.md` 做 minimal ingest：只整理到 `raw/library/sources/`、登记 `raw-index.md`、创建对应 `wiki/sources/...` 来源页、更新 `index.md` 和 `log.md`；知识页先只记录候选，不要主动创建。",
+      "expected_output": "完成一次最小 ingest，保留可追踪来源链路，但不把薄信息强行沉淀成 knowledge 或 synthesis 页面。",
+      "files": [
+        "evals/files/first-ingest-article"
+      ],
+      "expectations": [
+        "Recognizes the requested intensity as minimal ingest",
+        "Creates or updates raw/library/sources, raw-index.md, wiki/sources, index.md, and log.md",
+        "Records knowledge candidates or follow-up questions in the source page when useful",
+        "Does not create new wiki/knowledge pages by default",
+        "Does not create new wiki/syntheses pages"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "把 `evals/files/crosspage-sync/` 当成目标 vault 根目录。请对 `raw/inbox/sources/agent-memory-webclip.md` 做 deep ingest：除了来源入库、raw-index、source page 和 knowledge 同步外，还要检查是否形成跨来源综合；如果证据足够，创建或更新 `wiki/syntheses/...`。",
+      "expected_output": "完成一次深度 ingest，允许在证据足够时更新或创建 synthesis，但仍保持证据链和页面数量克制。",
+      "files": [
+        "evals/files/crosspage-sync"
+      ],
+      "expectations": [
+        "Recognizes the requested intensity as deep ingest",
+        "Updates or creates relevant wiki/knowledge pages before synthesis decisions",
+        "Checks existing sources and knowledge pages before deciding whether to create or update synthesis",
+        "Creates or updates wiki/syntheses only when there is enough cross-source evidence",
+        "Explains why no synthesis was created if the evidence is insufficient"
       ]
     }
   ]
